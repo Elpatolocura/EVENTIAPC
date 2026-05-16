@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 
 export default function Sidebar() {
   const [showConfirm, setShowConfirm] = useState(false)
@@ -165,7 +166,11 @@ export default function Sidebar() {
               </button>
               <button
                 type="button"
-                onClick={() => { navigate('/login'); setShowConfirm(false) }}
+                onClick={async () => { 
+                  await supabase.auth.signOut();
+                  navigate('/login'); 
+                  setShowConfirm(false); 
+                }}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors cursor-pointer"
               >
                 {t('sidebar.cerrar_sesion')}
