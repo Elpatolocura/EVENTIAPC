@@ -13,18 +13,16 @@ export default function Perfil() {
   const [followers, setFollowers] = useState<any[]>([])
   const [showFollowers, setShowFollowers] = useState(false)
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
 
   const targetId = id || user?.id
   const isOwnProfile = !id || id === user?.id
 
   useEffect(() => {
     if (!targetId) return
-    setLoading(true)
     Promise.all([
       getProfile(targetId).then((data) => setProfile(data || {})),
       getFollowers(targetId).then(setFollowers),
-    ]).finally(() => setLoading(false))
+    ])
   }, [targetId])
 
   const filtered = followers.filter(

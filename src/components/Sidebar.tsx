@@ -8,7 +8,7 @@ export default function Sidebar() {
   const [showPremiumModal, setShowPremiumModal] = useState(false)
   const navigate = useNavigate()
   const { t } = useLanguage()
-  const { isPremium, plan } = useAuth()
+  const { isPremium } = useAuth()
 
   const menuItems = [
     { label: t('sidebar.inicio'), path: '/', icon: '🏠' },

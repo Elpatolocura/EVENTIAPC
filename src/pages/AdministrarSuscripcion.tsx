@@ -1,12 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 
 export default function AdministrarSuscripcion() {
   const navigate = useNavigate()
-  const { t } = useLanguage()
   const { user, plan, refreshPlan } = useAuth()
   const [canceling, setCanceling] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
