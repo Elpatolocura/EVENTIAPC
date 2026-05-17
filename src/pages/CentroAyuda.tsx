@@ -11,8 +11,8 @@ const faqs = [
 
 const contactChannels = [
   { icon: '💬', label: 'Chat en vivo', desc: 'Lun - Vie, 9:00 - 18:00' },
-  { icon: '📧', label: 'radatova18@gmail.com', desc: 'Respuesta en 24 horas' },
-  { icon: '📞', label: '3052248972', desc: 'Línea de atención nacional' },
+  { icon: '📧', label: 'radatova18@gmail.com', desc: 'Respuesta en 24 horas', href: 'mailto:radatova18@gmail.com' },
+  { icon: '📞', label: '3052248972', desc: 'Línea de atención nacional', href: 'tel:3052248972' },
 ]
 
 export default function CentroAyuda() {
@@ -40,7 +40,11 @@ export default function CentroAyuda() {
           {contactChannels.map((ch) => (
             <div key={ch.label} className="p-4 rounded-xl bg-gray-50 text-center">
               <span className="text-2xl block mb-2">{ch.icon}</span>
-              <p className="text-sm font-medium text-gray-900">{ch.label}</p>
+              {ch.href ? (
+                <a href={ch.href} className="text-sm font-medium text-indigo-600 hover:text-indigo-700 underline">{ch.label}</a>
+              ) : (
+                <p className="text-sm font-medium text-gray-900">{ch.label}</p>
+              )}
               <p className="text-xs text-gray-500 mt-0.5">{ch.desc}</p>
             </div>
           ))}
