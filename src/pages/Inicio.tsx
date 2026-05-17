@@ -250,7 +250,7 @@ export default function Inicio() {
           <button
             key={f.key}
             type="button"
-            onClick={() => setActiveFilter(f.key)}
+            onClick={() => setActiveFilter(prev => prev === f.key ? '' : f.key)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
               activeFilter === f.key
                 ? 'bg-indigo-600 text-white shadow-sm'
