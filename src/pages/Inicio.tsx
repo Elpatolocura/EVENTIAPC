@@ -11,7 +11,7 @@ export default function Inicio() {
   const [profile, setProfile] = useState<Record<string, any> | null>(null)
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState('populares')
-  const [ticketType, setTicketType] = useState('todos')
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set())
   const [categoryFilter, setCategoryFilter] = useState('todos')
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [events, setEvents] = useState<any[]>([])
@@ -102,12 +102,12 @@ export default function Inicio() {
   const clearFilters = () => {
     setSearch('')
     setActiveFilter('populares')
-    setTicketType('todos')
+    setSelectedTypes(new Set())
     setCategoryFilter('todos')
   }
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
-  const hasActiveFilters = search || activeFilter !== 'populares' || ticketType !== 'todos' || categoryFilter !== 'todos'
+  const hasActiveFilters = search || activeFilter !== 'populares' || selectedTypes.size > 0 || categoryFilter !== 'todos'
 
   const getFilteredEvents = () => {
     let result = allEvents
@@ -121,8 +121,8 @@ export default function Inicio() {
     if (categoryFilter !== 'todos') {
       result = result.filter((e) => e.cat.toLowerCase() === categoryFilter.toLowerCase())
     }
-    if (ticketType !== 'todos') {
-      result = result.filter((e) => e.type === ticketType)
+    if (selectedTypes.size > 0) {
+      result = result.filter((e) => selectedTypes.has(e.type))
     }
     if (search.trim()) {
       const q = search.toLowerCase()
@@ -170,16 +170,19 @@ export default function Inicio() {
         <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">{t('inicio.tipo')}:</span>
         <div className="flex gap-1.5">
           {[
-            { key: 'todos', label: t('inicio.todos') },
             { key: 'Gratis', label: t('inicio.gratis') },
             { key: 'Pagado', label: t('inicio.pagado') },
           ].map((t2) => (
             <button
               key={t2.key}
               type="button"
-              onClick={() => setTicketType(t2.key)}
+              onClick={() => setSelectedTypes(prev => {
+                const n = new Set(prev)
+                if (n.has(t2.key)) n.delete(t2.key); else n.add(t2.key)
+                return n
+              })}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                ticketType === t2.key
+                selectedTypes.has(t2.key)
                   ? 'bg-gray-900 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
