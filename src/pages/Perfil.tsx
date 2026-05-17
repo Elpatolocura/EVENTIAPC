@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
-import { getProfile, getFollowers } from '../lib/db'
+import { getProfile, getProfiles, getFollowers, getFollowing, getEventsCount, getTicketsCount, followUser, unfollowUser } from '../lib/db'
 
 export default function Perfil() {
   const { user } = useAuth()
@@ -13,6 +13,12 @@ export default function Perfil() {
   const [followers, setFollowers] = useState<any[]>([])
   const [showFollowers, setShowFollowers] = useState(false)
   const [search, setSearch] = useState('')
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followLoading, setFollowLoading] = useState(false)
+  const [eventsCreated, setEventsCreated] = useState(0)
+  const [eventsAttended, setEventsAttended] = useState(0)
+  const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({})
+  const [followerProfiles, setFollowerProfiles] = useState<Record<string, any>>({})
 
   const targetId = id || user?.id
   const isOwnProfile = !id || id === user?.id
@@ -22,8 +28,83 @@ export default function Perfil() {
     Promise.all([
       getProfile(targetId).then((data) => setProfile(data || {})),
       getFollowers(targetId).then(setFollowers),
+      getEventsCount(targetId).then(setEventsCreated),
+      getTicketsCount(targetId).then(setEventsAttended),
     ])
   }, [targetId])
+
+  useEffect(() => {
+    if (!user || isOwnProfile) { setIsFollowing(false); return }
+    getFollowing(user.id).then((list) => {
+      const followed = list.map((f: any) => f.following_id)
+      setIsFollowing(followed.includes(targetId))
+      const map: Record<string, boolean> = {}
+      for (const f of list) map[f.following_id] = true
+      setFollowingMap(map)
+    })
+  }, [user, targetId, isOwnProfile])
+
+  useEffect(() => {
+    if (!user || !showFollowers) return
+    getFollowing(user.id).then((list) => {
+      const map: Record<string, boolean> = {}
+      for (const f of list) map[f.following_id] = true
+      setFollowingMap((prev) => ({ ...prev, ...map }))
+    })
+    const ids = followers.map((f: any) => f.follower_id).filter(Boolean)
+    if (ids.length > 0) {
+      getProfiles(ids).then((profiles) => {
+        const map: Record<string, any> = {}
+        for (const p of profiles) map[p.id] = p
+        setFollowerProfiles(map)
+      })
+    }
+  }, [user, showFollowers])
+
+  const refreshData = () => {
+    if (!targetId) return
+    getFollowers(targetId).then((list) => {
+      setFollowers(list)
+      if (showFollowers) {
+        const ids = list.map((f: any) => f.follower_id).filter(Boolean)
+        if (ids.length > 0) getProfiles(ids).then((profiles) => {
+          const map: Record<string, any> = {}
+          for (const p of profiles) map[p.id] = p
+          setFollowerProfiles(map)
+        })
+      }
+    })
+    getEventsCount(targetId).then(setEventsCreated)
+    getTicketsCount(targetId).then(setEventsAttended)
+    if (user) {
+      getFollowing(user.id).then((list) => {
+        const map: Record<string, boolean> = {}
+        for (const f of list) map[f.following_id] = true
+        setFollowingMap(map)
+        setIsFollowing(map[targetId] || false)
+      })
+    }
+  }
+
+  const handleFollowUser = async (uid: string) => {
+    if (!user || followLoading) return
+    setFollowLoading(true)
+    const op = followingMap[uid] ? unfollowUser(user.id, uid) : followUser(user.id, uid)
+    const { error } = await op
+    if (error) console.error('Error al cambiar follow:', error)
+    else refreshData()
+    setFollowLoading(false)
+  }
+
+  const handleFollowToggle = async () => {
+    if (!user || !targetId || targetId === user.id || followLoading) return
+    setFollowLoading(true)
+    const op = isFollowing ? unfollowUser(user.id, targetId) : followUser(user.id, targetId)
+    const { error } = await op
+    if (error) console.error('Error al cambiar follow:', error)
+    else refreshData()
+    setFollowLoading(false)
+  }
 
   const filtered = followers.filter(
     (f) => (f.follower?.full_name || '').toLowerCase().includes(search.toLowerCase())
@@ -51,9 +132,11 @@ export default function Perfil() {
                     {t('perfil.editar')}
                   </button>
                 ) : (
-                  <button type="button"
-                    className="px-4 py-2 rounded-xl bg-indigo-600 text-xs font-medium text-white hover:bg-indigo-700 transition-colors cursor-pointer">
-                    {t('perfil.seguir')}
+                  <button type="button" onClick={handleFollowToggle} disabled={followLoading}
+                    className={`px-4 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 ${isFollowing ? 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+                    {followLoading ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                    ) : isFollowing ? 'Siguiendo' : t('perfil.seguir')}
                   </button>
                 )}
               </div>
@@ -70,15 +153,15 @@ export default function Perfil() {
           <div className="flex items-center gap-6 mt-5 pb-5 border-b border-gray-100">
             <button type="button" onClick={() => setShowFollowers(true)}
               className="text-center hover:bg-gray-50 px-3 py-1.5 rounded-xl transition-colors cursor-pointer">
-              <p className="text-lg font-bold text-gray-900">{(profile as any)?.seguidores || followers.length || 0}</p>
+              <p className="text-lg font-bold text-gray-900">{followers.length}</p>
               <p className="text-xs text-gray-500">{t('perfil.seguidores')}</p>
             </button>
             <div className="text-center">
-              <p className="text-lg font-bold text-gray-900">{(profile as any)?.eventosCreados || 0}</p>
+              <p className="text-lg font-bold text-gray-900">{eventsCreated}</p>
               <p className="text-xs text-gray-500">{t('perfil.eventos_creados')}</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold text-gray-900">{(profile as any)?.eventosAsistidos || 0}</p>
+              <p className="text-lg font-bold text-gray-900">{eventsAttended}</p>
               <p className="text-xs text-gray-500">{t('perfil.eventos_asistidos')}</p>
             </div>
           </div>
@@ -125,14 +208,16 @@ export default function Perfil() {
                 <div className="space-y-0.5">
                   {filtered.map((f) => (
                     <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-lg shrink-0">👤</div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{f.follower?.full_name || t('perfil.usuario')}</p>
-                        <p className="text-xs text-gray-400">@{f.follower?.full_name?.toLowerCase().replace(/\s/g, '')}</p>
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-lg shrink-0 overflow-hidden">
+                        {followerProfiles[f.follower_id]?.avatar_url ? <img src={followerProfiles[f.follower_id].avatar_url} alt="" className="w-full h-full object-cover" /> : '👤'}
                       </div>
-                      <button type="button"
-                        className="px-4 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-                        {t('perfil.seguir')}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{followerProfiles[f.follower_id]?.nombre || t('perfil.usuario')}</p>
+                        <p className="text-xs text-gray-400">@{followerProfiles[f.follower_id]?.nombre?.toLowerCase().replace(/\s/g, '') || 'usuario'}</p>
+                      </div>
+                      <button type="button" onClick={() => handleFollowUser(f.follower_id)}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${followingMap[f.follower_id] ? 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600' : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
+                        {followingMap[f.follower_id] ? 'Siguiendo' : t('perfil.seguir')}
                       </button>
                     </div>
                   ))}

@@ -353,6 +353,35 @@ CREATE POLICY "Usuarios pueden crear notificaciones"
   WITH CHECK (auth.uid() = user_id);
 
 -- =============================================
+-- Tabla de preferencias de notificaciones
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.notification_preferences (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  follow_publishes_event BOOLEAN DEFAULT TRUE,
+  new_follower BOOLEAN DEFAULT TRUE,
+  new_message BOOLEAN DEFAULT TRUE,
+  event_near_date BOOLEAN DEFAULT TRUE,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.notification_preferences ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Usuarios pueden ver sus preferencias" ON public.notification_preferences;
+CREATE POLICY "Usuarios pueden ver sus preferencias"
+  ON public.notification_preferences FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Usuarios pueden crear sus preferencias" ON public.notification_preferences;
+CREATE POLICY "Usuarios pueden crear sus preferencias"
+  ON public.notification_preferences FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Usuarios pueden actualizar sus preferencias" ON public.notification_preferences;
+CREATE POLICY "Usuarios pueden actualizar sus preferencias"
+  ON public.notification_preferences FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- =============================================
 -- Tabla de transacciones
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.transactions (

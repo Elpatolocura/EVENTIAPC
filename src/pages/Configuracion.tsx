@@ -43,6 +43,7 @@ export default function Configuracion() {
     { icon: '🌐', label: t('config.idioma'), description: t('config.idioma_desc'), to: '/configuracion/idioma' },
     { icon: '🎨', label: t('config.personalizar'), description: t('config.personalizar_desc'), to: '/configuracion/personalizar' },
     { icon: '🔒', label: t('config.cambiar_contrasena'), description: t('config.cambiar_contrasena_desc'), to: '/configuracion/cambiar-contrasena' },
+    { icon: '🔔', label: 'Notificaciones', description: 'Configura tus notificaciones', to: '/configuracion/notificaciones' },
     { icon: '❓', label: t('config.centro_ayuda'), description: t('config.centro_ayuda_desc'), to: '/configuracion/centro-ayuda' },
     { icon: '📋', label: t('config.politicas'), description: t('config.politicas_desc'), to: '/configuracion/politicas-privacidad' },
     { icon: '💬', label: t('config.comentarios'), description: t('config.comentarios_desc'), to: '/configuracion/comentarios' },

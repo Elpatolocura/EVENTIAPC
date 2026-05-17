@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getProfile, updateProfile } from '../lib/db'
+import { improveWithAI } from '../lib/ai'
 
 const categories = [
   'Música', 'Deportes', 'Tecnología', 'Arte',
@@ -49,12 +50,16 @@ export default function EditarPerfil() {
         : [...prev.categorias, cat],
     }))
 
-  const improveBio = () => {
+  const improveBio = async () => {
     setImproving(true)
-    setTimeout(() => {
-      update('biografia', 'Apasionado por crear experiencias inolvidables. Amante de la música, la tecnología y los eventos que conectan personas.')
-      setImproving(false)
-    }, 1200)
+    try {
+      const result = await improveWithAI(
+        'Genera una biografía corta y atractiva para el perfil de un organizador de eventos. Máximo 3 oraciones. Sin encabezados.',
+        `Nombre: ${form.nombre || 'Usuario'}. Categorías de interés: ${form.categorias?.join(', ') || 'eventos'}. Ubicación: ${form.ubicacion || 'Colombia'}.`
+      )
+      if (result) update('biografia', result)
+    } catch { /* fallback silencioso */ }
+    setImproving(false)
   }
 
   const getCurrentLocation = () => {

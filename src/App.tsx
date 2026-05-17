@@ -19,6 +19,7 @@ import CambiarContrasena from './pages/CambiarContrasena'
 import CentroAyuda from './pages/CentroAyuda'
 import PoliticasPrivacidad from './pages/PoliticasPrivacidad'
 import Comentarios from './pages/Comentarios'
+import NotificacionesConfig from './pages/NotificacionesConfig'
 import DetalleEvento from './pages/DetalleEvento'
 import Premium from './pages/Premium'
 import AdministrarSuscripcion from './pages/AdministrarSuscripcion'
@@ -66,6 +67,7 @@ function App() {
           <Route path="/" element={<Inicio />} />
           <Route path="/favoritos" element={<Favoritos />} />
           <Route path="/crear-evento" element={<CrearEvento />} />
+          <Route path="/editar-evento/:eventId" element={<CrearEvento />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/:eventId" element={<Chat />} />
           <Route path="/chat-ia" element={<ChatIA />} />
@@ -82,6 +84,7 @@ function App() {
           <Route path="/configuracion/centro-ayuda" element={<CentroAyuda />} />
           <Route path="/configuracion/politicas-privacidad" element={<PoliticasPrivacidad />} />
           <Route path="/configuracion/comentarios" element={<Comentarios />} />
+          <Route path="/configuracion/notificaciones" element={<NotificacionesConfig />} />
           <Route path="/evento/:id" element={<DetalleEvento />} />
           <Route path="/premium" element={<Premium />} />
           <Route path="/configuracion/suscripcion" element={<AdministrarSuscripcion />} />

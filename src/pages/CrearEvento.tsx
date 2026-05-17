@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { createEvent, getUserCategories, addUserCategory } from '../lib/db'
+import { createEvent, updateEvent, getEventById, getUserCategories, addUserCategory } from '../lib/db'
+import { improveWithAI } from '../lib/ai'
 
 const predefinedCategories = [
   'Música', 'Deportes', 'Tecnología', 'Arte',
@@ -30,6 +31,8 @@ const steps = [
 ]
 
 export default function CrearEvento() {
+  const { eventId } = useParams<{ eventId: string }>()
+  const isEditing = !!eventId
   const { user } = useAuth()
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
@@ -43,6 +46,7 @@ export default function CrearEvento() {
   const [saving, setSaving] = useState(false)
   const [publishError, setPublishError] = useState('')
   const [publishedId, setPublishedId] = useState<string | null>(null)
+  const [loadingEvent, setLoadingEvent] = useState(false)
   const [form, setForm] = useState({
     titulo: '',
     descripcion: '',
@@ -66,8 +70,44 @@ export default function CrearEvento() {
     if (user) getUserCategories(user.id).then(setUserCategories)
   }, [user])
 
-  const update = (field: string, value: string | boolean) =>
+  useEffect(() => {
+    if (!eventId) return
+    setLoadingEvent(true)
+    getEventById(eventId).then((ev) => {
+      if (ev) {
+        setForm({
+          titulo: ev.title || '',
+          descripcion: ev.description || '',
+          categoria: ev.category || '',
+          ciudad: ev.city || '',
+          direccion: ev.address || '',
+          precio: typeof ev.price === 'string' ? ev.price.replace(/^[$]/, '') : '',
+          aforo: ev.capacity || '',
+          fecha: ev.date || '',
+          hora: ev.hour || '',
+          duracion: ev.duration || '',
+          organizador: ev.organizer || '',
+          telefonoContacto: ev.phone || '',
+          edadMinima: ev.age_min || '',
+          estacionamiento: !!ev.parking,
+          accesibilidad: !!ev.accessibility,
+          mascotas: !!ev.pets,
+        })
+        if (Array.isArray(ev.photos) && ev.photos.length > 0) {
+          setPhotos(ev.photos.map((url: string, i: number) => ({ id: i + 1, url })))
+        }
+        if (Array.isArray(ev.services)) {
+          setSelectedServices(ev.services)
+        }
+      }
+      setLoadingEvent(false)
+    })
+  }, [eventId])
+
+  const update = (field: string, value: string | boolean) => {
+    setValidationMsg('')
     setForm((prev) => ({ ...prev, [field]: value }))
+  }
 
   const addPhoto = () =>
     setPhotos((prev) => [...prev, { id: Date.now(), url: null }])
@@ -124,7 +164,7 @@ export default function CrearEvento() {
       date: form.fecha || 'Próximamente',
       hour: form.hora,
       duration: form.duracion,
-      organizer: form.organizador,
+      organizer: form.organizador || user?.email?.split('@')[0] || 'Organizador',
       phone: form.telefonoContacto,
       age_min: form.edadMinima,
       parking: form.estacionamiento,
@@ -141,12 +181,16 @@ export default function CrearEvento() {
     if (!user) return
     setSaving(true)
     setPublishError('')
-    const { data, error } = await createEvent(buildEventData('borrador'))
-    setSaving(false)
-    if (data) {
-      navigate('/mis-eventos')
-    } else if (error) {
-      setPublishError('No se pudo guardar el borrador.')
+    if (isEditing && eventId) {
+      const { error } = await updateEvent(eventId, buildEventData('borrador'))
+      setSaving(false)
+      if (!error) navigate('/mis-eventos')
+      else setPublishError('No se pudo guardar el borrador.')
+    } else {
+      const { data, error } = await createEvent(buildEventData('borrador'))
+      setSaving(false)
+      if (data) navigate('/mis-eventos')
+      else setPublishError('No se pudo guardar el borrador.')
     }
   }
 
@@ -154,23 +198,57 @@ export default function CrearEvento() {
     if (!user) return
     setSaving(true)
     setPublishError('')
-    const { data, error } = await createEvent(buildEventData('publicado'))
-    setSaving(false)
-    if (data) {
-      setPublishedId(data.id)
-    } else if (error) {
-      setPublishError('No se pudo publicar el evento. Asegúrate de haber ejecutado el SQL en Supabase.')
+    if (isEditing && eventId) {
+      const { error } = await updateEvent(eventId, buildEventData('publicado'))
+      setSaving(false)
+      if (error) setPublishError('No se pudo publicar el evento.')
+      else setPublishedId(eventId)
+    } else {
+      const { data, error } = await createEvent(buildEventData('publicado'))
+      setSaving(false)
+      if (data) setPublishedId(data.id)
+      else setPublishError('No se pudo publicar el evento. Asegúrate de haber ejecutado el SQL en Supabase.')
     }
   }
 
   const previewPhotos = photos.filter((p) => p.url)
 
+  const [validationMsg, setValidationMsg] = useState('')
+
   const canGoNext = () => {
-    if (step === 1) return form.titulo.trim().length > 0
-    if (step === 2) return form.fecha.trim().length > 0
-    if (step === 3) return true
-    if (step === 4) return true
+    if (step === 1) return form.titulo.trim().length > 0 && form.descripcion.trim().length > 0 && form.categoria.length > 0
+    if (step === 2) return form.fecha.trim().length > 0 && form.hora.trim().length > 0 && form.ciudad.length > 0
+    if (step === 3) return form.precio.trim().length > 0 && form.aforo.trim().length > 0 && form.telefonoContacto.trim().length > 0
+    if (step === 4) return photos.some((p) => p.url)
     return true
+  }
+
+  const handleNext = () => {
+    const missing: string[] = []
+    if (step === 1) {
+      if (!form.titulo.trim()) missing.push('título')
+      if (!form.descripcion.trim()) missing.push('descripción')
+      if (!form.categoria) missing.push('categoría')
+    }
+    if (step === 2) {
+      if (!form.fecha.trim()) missing.push('fecha')
+      if (!form.hora.trim()) missing.push('hora')
+      if (!form.ciudad) missing.push('ciudad')
+    }
+    if (step === 3) {
+      if (!form.precio.trim()) missing.push('precio')
+      if (!form.aforo.trim()) missing.push('aforo')
+      if (!form.telefonoContacto.trim()) missing.push('teléfono de contacto')
+    }
+    if (step === 4) {
+      if (!photos.some((p) => p.url)) missing.push('al menos una foto')
+    }
+    if (missing.length > 0) {
+      setValidationMsg(`Completa los campos obligatorios: ${missing.join(', ')}`)
+      return
+    }
+    setValidationMsg('')
+    setStep(step + 1)
   }
 
   const renderPreview = () => (
@@ -291,15 +369,19 @@ export default function CrearEvento() {
           <div className="space-y-5 animate-fadeIn">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-gray-700">Título del evento</label>
+                <label className="block text-sm font-medium text-gray-700">Título del evento <span className="text-red-400">*</span></label>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     setImprovingTitle(true)
-                    setTimeout(() => {
-                      update('titulo', '🎵 Festival de Música 2026: La Experiencia Inolvidable')
-                      setImprovingTitle(false)
-                    }, 1200)
+                    try {
+                      const result = await improveWithAI(
+                        'Genera un título atractivo y llamativo para un evento. Corto, impactante, con emoji si aplica.',
+                        `Categoría: ${form.categoria || 'sin categoría'}. Descripción actual: ${form.descripcion || 'sin descripción'}. Título actual: ${form.titulo || 'sin título'}`
+                      )
+                      if (result) update('titulo', result)
+                    } catch { /* fallback silencioso */ }
+                    setImprovingTitle(false)
                   }}
                   disabled={improvingTitle}
                   className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
@@ -321,15 +403,19 @@ export default function CrearEvento() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-gray-700">Descripción</label>
+                <label className="block text-sm font-medium text-gray-700">Descripción <span className="text-red-400">*</span></label>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     setImprovingDesc(true)
-                    setTimeout(() => {
-                      update('descripcion', 'Disfruta de una experiencia musical única con los mejores artistas nacionales e internacionales. Música en vivo, comida gourmet, zonas de descanso y actividades interactivas te esperan en el evento más esperado del año. ¡No te lo pierdas!')
-                      setImprovingDesc(false)
-                    }, 1400)
+                    try {
+                      const result = await improveWithAI(
+                        'Genera una descripción atractiva y persuasiva para un evento. Entre 2 y 4 párrafos cortos. Sin encabezados ni formato.',
+                        `Título: ${form.titulo || 'Evento'}. Categoría: ${form.categoria || 'sin categoría'}. Ciudad: ${form.ciudad || 'sin especificar'}.`
+                      )
+                      if (result) update('descripcion', result)
+                    } catch { /* fallback silencioso */ }
+                    setImprovingDesc(false)
                   }}
                   disabled={improvingDesc || !form.titulo}
                   className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
@@ -350,7 +436,7 @@ export default function CrearEvento() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Categoría</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Categoría <span className="text-red-400">*</span></label>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <select
@@ -402,7 +488,7 @@ export default function CrearEvento() {
           <div className="space-y-5 animate-fadeIn">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Fecha del evento</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Fecha del evento <span className="text-red-400">*</span></label>
                 <div className="flex gap-3">
                   <div className="flex-1 relative">
                     <input
@@ -434,7 +520,7 @@ export default function CrearEvento() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Hora</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Hora <span className="text-red-400">*</span></label>
                 <input
                   type="time"
                   value={(() => {
@@ -491,7 +577,7 @@ export default function CrearEvento() {
                 </div>
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ciudad</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ciudad <span className="text-red-400">*</span></label>
                 <select
                   value={form.ciudad}
                   onChange={(e) => update('ciudad', e.target.value)}
@@ -535,7 +621,7 @@ export default function CrearEvento() {
           <div className="space-y-5 animate-fadeIn">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Precio</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Precio <span className="text-red-400">*</span></label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-sm text-gray-400">$</span>
                   <input
@@ -551,7 +637,7 @@ export default function CrearEvento() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Capacidad (aforo)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Capacidad (aforo) <span className="text-red-400">*</span></label>
                 <input
                   type="text"
                   value={form.aforo}
@@ -560,28 +646,18 @@ export default function CrearEvento() {
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Edad mínima</label>
-                <input
-                  type="text"
-                  value={form.edadMinima}
-                  onChange={(e) => update('edadMinima', e.target.value)}
-                  placeholder="Ej: 18"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Organizador</label>
-                <input
-                  type="text"
-                  value={form.organizador}
-                  onChange={(e) => update('organizador', e.target.value)}
-                  placeholder="Nombre del organizador"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Teléfono de contacto</label>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Edad mínima</label>
+                  <input
+                    type="text"
+                    value={form.edadMinima}
+                    onChange={(e) => update('edadMinima', e.target.value)}
+                    placeholder="Ej: 18"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Teléfono de contacto <span className="text-red-400">*</span></label>
                 <div className="flex">
                   <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-gray-200 bg-gray-50 text-sm text-gray-500">🇨🇴 +57</span>
                   <input
@@ -601,7 +677,7 @@ export default function CrearEvento() {
         return (
           <div className="space-y-5 animate-fadeIn">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Fotos del evento</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Fotos del evento <span className="text-red-400">*</span></label>
               <div className="grid grid-cols-4 gap-2">
                 {photos.map((p) => (
                   <div key={p.id} className="relative">
@@ -755,10 +831,24 @@ export default function CrearEvento() {
     }
   }
 
+  if (loadingEvent) {
+    return (
+      <div className="max-w-6xl mx-auto flex items-center justify-center py-20">
+        <div className="flex items-center gap-3 text-gray-500">
+          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          Cargando evento...
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Crear Evento</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{isEditing ? 'Editar Evento' : 'Crear Evento'}</h1>
         <span className="text-xs text-gray-400">Paso {step} de 5</span>
       </div>
 
@@ -774,42 +864,46 @@ export default function CrearEvento() {
             {renderStep()}
 
             {step < 5 && (
-              <div className="flex gap-3 mt-8 pt-5 border-t border-gray-100">
-                {step > 1 ? (
+              <div className="mt-8 pt-5 border-t border-gray-100">
+                <div className="flex gap-3">
+                  {step > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => { setValidationMsg(''); setStep(step - 1) }}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center gap-1"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                      Anterior
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/inicio')}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => setStep(step - 1)}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center gap-1"
+                    onClick={() => { setValidationMsg(''); handleSaveDraft() }}
+                    disabled={saving}
+                    className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center gap-1"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                    Anterior
+                    📄 Borrador
                   </button>
-                ) : (
                   <button
                     type="button"
-                    onClick={() => navigate('/inicio')}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={handleNext}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 transition-colors cursor-pointer flex items-center justify-center gap-1"
                   >
-                    Cancelar
+                    Siguiente
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                   </button>
+                </div>
+                {validationMsg && (
+                  <p className="mt-2 text-xs text-red-500 text-center">{validationMsg}</p>
                 )}
-                <button
-                  type="button"
-                  onClick={handleSaveDraft}
-                  disabled={saving}
-                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center gap-1"
-                >
-                  📄 Borrador
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(step + 1)}
-                  disabled={!canGoNext()}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1"
-                >
-                  Siguiente
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                </button>
               </div>
             )}
           </div>

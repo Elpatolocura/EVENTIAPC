@@ -6,6 +6,14 @@ export async function getProfile(userId: string) {
   return data
 }
 
+export async function getProfiles(userIds: string[]) {
+  if (userIds.length === 0) return []
+  try {
+    const { data } = await supabase.from('profiles').select('id, nombre, avatar_url').in('id', userIds)
+    return data || []
+  } catch { return [] }
+}
+
 export async function updateProfile(userId: string, updates: Record<string, unknown>) {
   const { error } = await supabase.from('profiles').upsert({ id: userId, ...updates }, { onConflict: 'id' })
   if (error) console.error('Error al guardar perfil:', error)
@@ -19,11 +27,25 @@ export async function getEvents(userId: string) {
   } catch { return [] }
 }
 
+export async function getEventsCount(userId: string) {
+  try {
+    const { count } = await supabase.from('events').select('*', { count: 'exact', head: true }).eq('organizer_id', userId)
+    return count || 0
+  } catch { return 0 }
+}
+
 export async function getTickets(userId: string) {
   try {
     const { data } = await supabase.from('tickets').select('*, events(*)').eq('user_id', userId).order('created_at', { ascending: false })
     return data || []
   } catch { return [] }
+}
+
+export async function getTicketsCount(userId: string) {
+  try {
+    const { count } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('user_id', userId)
+    return count || 0
+  } catch { return 0 }
 }
 
 export async function getFavorites(userId: string) {
@@ -56,9 +78,39 @@ export async function getTransactions(userId: string) {
 
 export async function getFollowers(userId: string) {
   try {
-    const { data } = await supabase.from('followers').select('*, follower:profiles!follower_id(*)').eq('following_id', userId)
+    const { data, error } = await supabase.from('followers').select('*').eq('following_id', userId)
+    if (error) console.error('Error getFollowers:', error)
     return data || []
   } catch { return [] }
+}
+
+export async function getFollowing(userId: string) {
+  try {
+    const { data } = await supabase.from('followers').select('*').eq('follower_id', userId)
+    return data || []
+  } catch { return [] }
+}
+
+export async function followUser(followerId: string, followingId: string) {
+  try {
+    const { error } = await supabase.from('followers').insert({ follower_id: followerId, following_id: followingId })
+    if (error) console.error('Error al seguir usuario:', error)
+    return { error }
+  } catch (e) {
+    console.error('Error al seguir usuario:', e)
+    return { error: e }
+  }
+}
+
+export async function unfollowUser(followerId: string, followingId: string) {
+  try {
+    const { error } = await supabase.from('followers').delete().eq('follower_id', followerId).eq('following_id', followingId)
+    if (error) console.error('Error al dejar de seguir:', error)
+    return { error }
+  } catch (e) {
+    console.error('Error al dejar de seguir:', e)
+    return { error: e }
+  }
 }
 
 export async function createEvent(event: Record<string, unknown>) {
@@ -79,6 +131,17 @@ export async function updateEvent(id: string, updates: Record<string, unknown>) 
     return { error }
   } catch (e) {
     console.error('Error al actualizar evento:', e)
+    return { error: e }
+  }
+}
+
+export async function deleteEvent(id: string) {
+  try {
+    const { error } = await supabase.from('events').delete().eq('id', id)
+    if (error) console.error('Error al eliminar evento:', error)
+    return { error }
+  } catch (e) {
+    console.error('Error al eliminar evento:', e)
     return { error: e }
   }
 }
@@ -205,4 +268,25 @@ export async function userHasTicket(userId: string, eventId: string) {
     const { data } = await supabase.from('tickets').select('id').eq('user_id', userId).eq('event_id', eventId).maybeSingle()
     return !!data
   } catch { return false }
+}
+
+const defaultPrefs = { follow_publishes_event: true, new_follower: true, new_message: true, event_near_date: true }
+const storageKey = (userId: string) => `notif_prefs_${userId}`
+
+export async function getNotificationPreferences(userId: string) {
+  try {
+    const { data } = await supabase.from('profiles').select('notif_prefs').eq('id', userId).maybeSingle()
+    if (data?.notif_prefs) return { ...defaultPrefs, ...data.notif_prefs as Record<string, boolean> }
+  } catch { /* column might not exist yet */ }
+  const stored = localStorage.getItem(storageKey(userId))
+  if (stored) return { ...defaultPrefs, ...JSON.parse(stored) }
+  return { ...defaultPrefs }
+}
+
+export async function updateNotificationPreferences(userId: string, prefs: Record<string, boolean>) {
+  localStorage.setItem(storageKey(userId), JSON.stringify(prefs))
+  try {
+    await supabase.from('profiles').update({ notif_prefs: prefs }).eq('id', userId)
+  } catch { /* column might not exist yet */ }
+  return { error: null }
 }
