@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getProfile, getAllEvents } from '../lib/db'
+import { supabase } from '../lib/supabase'
 
 export default function Inicio() {
   const { user } = useAuth()
@@ -13,6 +14,7 @@ export default function Inicio() {
   const [ticketType, setTicketType] = useState('todos')
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [events, setEvents] = useState<any[]>([])
+  const [favorites, setFavorites] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     if (!user) return
@@ -22,6 +24,27 @@ export default function Inicio() {
   useEffect(() => {
     getAllEvents().then(setEvents)
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    supabase.from('favorites').select('event_id').eq('user_id', user.id).then(({ data }) => {
+      if (data) setFavorites(new Set(data.map(f => f.event_id)))
+    })
+  }, [user])
+
+  const toggleFav = async (eventId: number, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!user) return
+    const isFav = favorites.has(eventId)
+    if (isFav) {
+      await supabase.from('favorites').delete().eq('user_id', user.id).eq('event_id', eventId)
+      setFavorites(prev => { const n = new Set(prev); n.delete(eventId); return n })
+    } else {
+      await supabase.from('favorites').insert({ user_id: user.id, event_id: eventId })
+      setFavorites(prev => { const n = new Set(prev); n.add(eventId); return n })
+    }
+  }
 
   useEffect(() => {
     const handleScroll = () => setShowScrollTop(window.scrollY > 400)
@@ -194,20 +217,28 @@ export default function Inicio() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {displayEvents.map((event: any) => (
-              <div
-                key={event.id}
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group cursor-pointer"
-              >
-                <Link to={`/evento/${event.id}`}>
-                  <div className={`h-28 relative ${!event.cover ? `bg-gradient-to-br from-indigo-500 to-fuchsia-500` : ''}`}>
-                    {event.cover && typeof event.cover === 'string' && event.cover.startsWith('data:') ? (
-                      <img src={event.cover} alt="" className="w-full h-full object-cover" />
-                    ) : event.cover && typeof event.cover === 'string' && !event.cover.startsWith('from-') ? (
-                      <img src={event.cover} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-2xl">🎉</div>
-                    )}
-                  </div>
+                  <div
+                    key={event.id}
+                    className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group cursor-pointer relative"
+                  >
+                    <button type="button" onClick={(e) => toggleFav(event.id, e)}
+                      className={`absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                        favorites.has(event.id) ? 'bg-red-500 text-white' : 'bg-black/20 text-white/80 hover:bg-black/40 hover:text-white'
+                      }`}>
+                      <svg className="w-3.5 h-3.5" fill={favorites.has(event.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </button>
+                    <Link to={`/evento/${event.id}`}>
+                      <div className={`h-28 relative ${!event.cover ? `bg-gradient-to-br from-indigo-500 to-fuchsia-500` : ''}`}>
+                        {event.cover && typeof event.cover === 'string' && event.cover.startsWith('data:') ? (
+                          <img src={event.cover} alt="" className="w-full h-full object-cover" />
+                        ) : event.cover && typeof event.cover === 'string' && !event.cover.startsWith('from-') ? (
+                          <img src={event.cover} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-2xl">🎉</div>
+                        )}
+                      </div>
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
