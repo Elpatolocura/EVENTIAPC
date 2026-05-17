@@ -111,6 +111,8 @@ export default function Chat() {
           from: isMe ? 'me' : 'them',
           text: m.text,
           time,
+          senderName: m.sender?.nombre || 'Usuario',
+          senderAvatar: m.sender?.avatar_url || null,
         }
       })
       setMsgs(mapped)
@@ -142,7 +144,7 @@ export default function Chat() {
       .map((m: any) => {
       const isMe = m.user_id === user.id
       const time = new Date(m.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
-      return { id: m.id, from: isMe ? 'me' : 'them', text: m.text, time }
+      return { id: m.id, from: isMe ? 'me' : 'them', text: m.text, time, senderName: m.sender?.nombre || 'Usuario', senderAvatar: m.sender?.avatar_url || null }
     })
     setMsgs(mapped)
   }
@@ -398,7 +400,7 @@ export default function Chat() {
             <div className={`flex-1 overflow-y-auto px-6 py-4 space-y-3 ${chatBg} ${fontSize === 'base' ? 'text-base' : 'text-sm'}`}>
               {msgs.map((msg) => {
                 const isMe = msg.from === 'me'
-                const senderName = isMe ? t('chat.tu') : selected?.event ?? 'Usuario'
+                const senderName = isMe ? t('chat.tu') : msg.senderName || 'Usuario'
   const myBubbleColors: Record<string, string> = {
     indigo: 'bg-indigo-600',
     blue: 'bg-blue-600',
@@ -429,13 +431,13 @@ export default function Chat() {
                   )}
                   <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                     <div className={`flex items-end gap-2 max-w-[75%] ${isMe ? 'flex-row-reverse' : ''}`}>
-                      {!isMe && (selected?.cover ? (
+                      {!isMe && (msg.senderAvatar ? (
                         <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
-                          <img src={selected.cover} alt="" className="w-full h-full object-cover" />
+                          <img src={msg.senderAvatar} alt="" className="w-full h-full object-cover" />
                         </div>
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                          {selected?.event?.charAt(0) ?? 'E'}
+                          {(msg.senderName || 'U').charAt(0).toUpperCase()}
                         </div>
                       ))}
                       <div className="flex flex-col min-w-0">

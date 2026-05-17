@@ -146,9 +146,17 @@ export async function getChatMessages(eventId: string) {
       .order('created_at', { ascending: true })
     if (!data) return []
     const userIds = [...new Set(data.map((m: any) => m.user_id))]
-    const { data: profiles } = await supabase.from('profiles').select('id, nombre').in('id', userIds)
-    const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, p.nombre]))
-    return data.map((m: any) => ({ ...m, profiles: { nombre: profileMap[m.user_id] || 'Usuario' } }))
+    let profileMap: Record<string, { nombre: string; avatar_url: string }> = {}
+    try {
+      const { data: profiles } = await supabase.from('profiles').select('id, nombre, avatar_url').in('id', userIds)
+      profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, { nombre: p.nombre || '', avatar_url: p.avatar_url || '' }]))
+    } catch {
+      try {
+        const { data: profiles } = await supabase.from('profiles').select('id, nombre').in('id', userIds)
+        profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, { nombre: p.nombre || '', avatar_url: '' }]))
+      } catch {}
+    }
+    return data.map((m: any) => ({ ...m, sender: profileMap[m.user_id] || { nombre: 'Usuario', avatar_url: '' } }))
   } catch { return [] }
 }
 

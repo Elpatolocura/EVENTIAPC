@@ -17,10 +17,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de seguridad
-DROP POLICY IF EXISTS "Usuarios pueden ver su propio perfil" ON public.profiles;
-CREATE POLICY "Usuarios pueden ver su propio perfil"
+DROP POLICY IF EXISTS "Cualquiera puede ver perfiles" ON public.profiles;
+CREATE POLICY "Cualquiera puede ver perfiles"
   ON public.profiles FOR SELECT
-  USING (auth.uid() = id);
+  USING (true);
 
 DROP POLICY IF EXISTS "Usuarios pueden crear su propio perfil" ON public.profiles;
 CREATE POLICY "Usuarios pueden crear su propio perfil"
@@ -36,8 +36,12 @@ CREATE POLICY "Usuarios pueden actualizar su propio perfil"
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, nombre)
-  VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'full_name', ''));
+  INSERT INTO public.profiles (id, nombre, avatar_url)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    'https://picsum.photos/seed/' || NEW.id::text || '/400/400'
+  );
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -87,6 +91,7 @@ CREATE TABLE IF NOT EXISTS public.events (
   photos JSONB DEFAULT '[]'::jsonb,
   type TEXT DEFAULT 'Pagado',
   services JSONB DEFAULT '[]'::jsonb,
+  status TEXT DEFAULT 'publicado',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -432,3 +437,6 @@ ALTER TABLE public.followers ADD CONSTRAINT followers_follower_id_fkey FOREIGN K
 
 ALTER TABLE public.followers DROP CONSTRAINT IF EXISTS followers_following_id_fkey;
 ALTER TABLE public.followers ADD CONSTRAINT followers_following_id_fkey FOREIGN KEY (following_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+-- Agregar columna status si no existe (para tablas creadas antes de este cambio)
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'publicado';

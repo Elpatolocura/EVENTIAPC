@@ -12,6 +12,17 @@ type AuthContextType = {
   refreshPlan: () => Promise<void>
 }
 
+function clearSupabaseSession() {
+  const keysToRemove: string[] = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+      keysToRemove.push(key)
+    }
+  }
+  keysToRemove.forEach((key) => localStorage.removeItem(key))
+}
+
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
@@ -40,9 +51,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const u = session?.user ?? null
-      setUser(u)
-      if (u) fetchPlan(u.id)
+      if (!session) {
+        clearSupabaseSession()
+      } else {
+        setUser(session.user)
+        fetchPlan(session.user.id)
+      }
       setLoading(false)
     })
 

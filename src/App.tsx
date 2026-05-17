@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Sidebar from './components/Sidebar'
@@ -31,6 +32,7 @@ function App() {
   const location = useLocation()
   const authRoutes = ['/login', '/crear-cuenta', '/recuperar-clave']
   const isAuthRoute = authRoutes.includes(location.pathname)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   if (loading) {
     return (
@@ -58,8 +60,8 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar />
-      <main className="ml-64 flex-1 p-8">
+      <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+      <main className={`${sidebarCollapsed ? 'ml-16' : 'ml-64'} flex-1 p-8 transition-all duration-200`}>
         <Routes>
           <Route path="/" element={<Inicio />} />
           <Route path="/favoritos" element={<Favoritos />} />
