@@ -61,8 +61,11 @@ export default function Inicio() {
     return new Date(parseInt(m[3]), months[m[2].toLowerCase()], parseInt(m[1])) < today
   }
 
+  const userCategories = profile?.categorias?.length ? profile.categorias.map((c: string) => c.toLowerCase()) : null
+
   const allEvents = events
     .filter((ev: any) => !ev.date || !isPast(ev.date))
+    .filter((ev: any) => !userCategories || userCategories.includes((ev.category || 'General').toLowerCase()))
     .map((ev: any) => ({
     id: ev.id,
     title: ev.title,
