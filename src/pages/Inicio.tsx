@@ -10,7 +10,7 @@ export default function Inicio() {
   const { t } = useLanguage()
   const [profile, setProfile] = useState<Record<string, any> | null>(null)
   const [search, setSearch] = useState('')
-  const [activeFilter, setActiveFilter] = useState('todos')
+  const [activeFilter, setActiveFilter] = useState('populares')
   const [ticketType, setTicketType] = useState('todos')
   const [categoryFilter, setCategoryFilter] = useState('todos')
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -56,10 +56,20 @@ export default function Inicio() {
   const months: Record<string, number> = { ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11 }
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const isPast = (dateStr: string) => {
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const parseDate = (dateStr: string) => {
     const m = dateStr.match(/^(\d+)\s+(\w+)\s+(\d+)$/)
-    if (!m) return false
-    return new Date(parseInt(m[3]), months[m[2].toLowerCase()], parseInt(m[1])) < today
+    if (!m) return null
+    return new Date(parseInt(m[3]), months[m[2].toLowerCase()], parseInt(m[1]))
+  }
+  const isPast = (dateStr: string) => {
+    const d = parseDate(dateStr)
+    return d ? d < today : false
+  }
+  const isSameDay = (dateStr: string, target: Date) => {
+    const d = parseDate(dateStr)
+    return d ? d.getTime() === target.getTime() : false
   }
 
   const allEvents = events
@@ -80,25 +90,33 @@ export default function Inicio() {
   const popularEvents = [...allEvents].sort((a, b) => b.attendees - a.attendees).slice(0, 6)
   const eventCategories = [...new Set(allEvents.map((e) => e.cat))].sort()
 
+  const hoyEvents = allEvents.filter((e) => e.date && isSameDay(e.date, today))
+  const mananaEvents = allEvents.filter((e) => e.date && isSameDay(e.date, tomorrow))
+
   const filters = [
-    { key: 'todos', label: t('inicio.todos'), count: allEvents.length },
     { key: 'populares', label: t('inicio.destacados'), count: popularEvents.length },
+    { key: 'hoy', label: 'Hoy', count: hoyEvents.length },
+    { key: 'mañana', label: 'Mañana', count: mananaEvents.length },
   ]
 
   const clearFilters = () => {
     setSearch('')
-    setActiveFilter('todos')
+    setActiveFilter('populares')
     setTicketType('todos')
     setCategoryFilter('todos')
   }
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
-  const hasActiveFilters = search || activeFilter !== 'todos' || ticketType !== 'todos' || categoryFilter !== 'todos'
+  const hasActiveFilters = search || activeFilter !== 'populares' || ticketType !== 'todos' || categoryFilter !== 'todos'
 
   const getFilteredEvents = () => {
     let result = allEvents
     if (activeFilter === 'populares') {
       result = popularEvents
+    } else if (activeFilter === 'hoy') {
+      result = hoyEvents
+    } else if (activeFilter === 'mañana') {
+      result = mananaEvents
     }
     if (categoryFilter !== 'todos') {
       result = result.filter((e) => e.cat.toLowerCase() === categoryFilter.toLowerCase())
@@ -155,7 +173,6 @@ export default function Inicio() {
             { key: 'todos', label: t('inicio.todos') },
             { key: 'Gratis', label: t('inicio.gratis') },
             { key: 'Pagado', label: t('inicio.pagado') },
-            { key: 'VIP', label: t('inicio.vip') },
           ].map((t2) => (
             <button
               key={t2.key}
@@ -207,14 +224,6 @@ export default function Inicio() {
       </div>
 
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-        <button type="button" onClick={() => setCategoryFilter('todos')}
-          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-            categoryFilter === 'todos'
-              ? 'bg-indigo-100 text-indigo-700'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-          }`}>
-          Ver todo
-        </button>
         {eventCategories.map((cat) => (
           <button key={cat} type="button" onClick={() => setCategoryFilter(cat)}
             className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
