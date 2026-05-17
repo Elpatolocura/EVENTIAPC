@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { NotificationProvider } from './context/NotificationContext'
 import Sidebar from './components/Sidebar'
 import Inicio from './pages/Inicio'
 import Favoritos from './pages/Favoritos'
@@ -61,6 +62,7 @@ function App() {
   }
 
   return (
+    <NotificationProvider>
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       <main className={`${sidebarCollapsed ? 'ml-16' : 'ml-64'} flex-1 p-8 transition-all duration-200`}>
@@ -94,6 +96,7 @@ function App() {
         </Routes>
       </main>
     </div>
+    </NotificationProvider>
   )
 }
 

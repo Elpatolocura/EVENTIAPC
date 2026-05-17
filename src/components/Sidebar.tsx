@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
+import { useNotification } from '../context/NotificationContext'
 import { supabase } from '../lib/supabase'
 
 export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
@@ -10,6 +11,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   const navigate = useNavigate()
   const { t } = useLanguage()
   const { isPremium } = useAuth()
+  const { unreadCount } = useNotification()
 
   const menuItems = [
     { label: t('sidebar.inicio'), path: '/', icon: '🏠' },
@@ -19,7 +21,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     { label: t('sidebar.chat_ia'), path: '/chat-ia', icon: '🤖' },
     { label: t('sidebar.mis_entradas'), path: '/mis-entradas', icon: '🎫' },
     { label: t('sidebar.mis_eventos'), path: '/mis-eventos', icon: '📅' },
-    { label: t('sidebar.notificaciones'), path: '/notificaciones', icon: '🔔' },
+    { label: t('sidebar.notificaciones'), path: '/notificaciones', icon: '🔔', badge: unreadCount },
     { label: t('sidebar.perfil'), path: '/perfil', icon: '👤' },
     { label: t('sidebar.configuracion'), path: '/configuracion', icon: '⚙️' },
   ]
@@ -55,6 +57,11 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 >
                   <span className="text-lg">{item.icon}</span>
                   {!collapsed && <span>{item.label}</span>}
+                  {'badge' in item && item.badge > 0 && (
+                    <span className={`${collapsed ? 'absolute -top-1 -right-1' : 'ml-auto'} bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center`}>
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
                 </NavLink>
               </li>
             ))}

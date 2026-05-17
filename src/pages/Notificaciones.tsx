@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useNotification } from '../context/NotificationContext'
 import { getNotifications } from '../lib/db'
 import { supabase } from '../lib/supabase'
 import { useLanguage } from '../context/LanguageContext'
@@ -7,34 +8,47 @@ import { useLanguage } from '../context/LanguageContext'
 export default function Notificaciones() {
   const { t } = useLanguage()
   const { user } = useAuth()
+  const { refreshUnread } = useNotification()
   const [notifications, setNotifications] = useState<any[]>([])
 
-  useEffect(() => {
-    if (user) getNotifications(user.id).then((data) =>
-      setNotifications(data.map((n: any) => ({
-        id: n.id,
-        type: n.type || 'evento',
-        icon: n.icon || '🔔',
-        title: n.title || 'Notificación',
-        desc: n.desc || '',
-        time: new Date(n.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }) || 'Hoy',
-        unread: !n.read,
-      })))
-    )
+  const mapNotif = (n: any) => ({
+    id: n.id,
+    title: n.title || 'Notificación',
+    desc: n.message || '',
+    time: new Date(n.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }),
+    unread: !n.read,
+  })
+
+  const load = useCallback(async () => {
+    if (!user) return
+    const data = await getNotifications(user.id)
+    setNotifications(data.map(mapNotif))
   }, [user])
+
+  useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase.channel('notificaciones-page')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => { load(); refreshUnread() })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user, load, refreshUnread])
 
   const unreadCount = notifications.filter((n) => n.unread).length
 
   const markAllRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
-    if (user) await supabase.from('notifications').update({ read: true }).eq('user_id', user.id)
+    if (user) { await supabase.from('notifications').update({ read: true }).eq('user_id', user.id); refreshUnread() }
   }
 
   const toggleRead = async (id: number) => {
     const n = notifications.find((x) => x.id === id)
     if (!n) return
-    setNotifications((prev) => prev.map((x) => (x.id === id ? { ...x, unread: !x.unread } : x)))
-    await supabase.from('notifications').update({ read: !n.unread }).eq('id', id)
+    const newUnread = !n.unread
+    setNotifications((prev) => prev.map((x) => (x.id === id ? { ...x, unread: newUnread } : x)))
+    await supabase.from('notifications').update({ read: !newUnread }).eq('id', id)
+    refreshUnread()
   }
 
   return (
@@ -64,7 +78,7 @@ export default function Notificaciones() {
           {notifications.map((n) => (
             <button key={n.id} type="button" onClick={() => toggleRead(n.id)}
               className={`w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-gray-50 transition-colors cursor-pointer ${n.unread ? 'bg-indigo-50/40' : ''}`}>
-              <span className="text-xl mt-0.5 shrink-0">{n.icon}</span>
+              <span className="text-xl mt-0.5 shrink-0">🔔</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className={`text-sm ${n.unread ? 'font-semibold text-gray-900' : 'font-medium text-gray-900'}`}>{n.title}</p>
