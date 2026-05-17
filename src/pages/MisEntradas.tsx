@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { getTickets } from '../lib/db'
+import { getTickets, markExpiredTickets } from '../lib/db'
 import { useLanguage } from '../context/LanguageContext'
 
 const statusColors: Record<string, string> = {
@@ -17,7 +17,9 @@ export default function MisEntradas() {
   const [detailTicket, setDetailTicket] = useState<any>(null)
 
   useEffect(() => {
-    if (user) getTickets(user.id).then(setTickets)
+    if (user) {
+      markExpiredTickets(user.id).then(() => getTickets(user.id).then(setTickets))
+    }
   }, [user])
 
   const filtered = filter === 'todas' ? tickets : tickets.filter((t) => t.status === filter)

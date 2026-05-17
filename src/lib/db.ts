@@ -303,3 +303,30 @@ export async function updateNotificationPreferences(userId: string, prefs: Recor
   } catch { /* column might not exist yet */ }
   return { error: null }
 }
+
+export async function markExpiredTickets(userId: string) {
+  try {
+    const { data: tickets } = await supabase
+      .from('tickets')
+      .select('id, events!inner(date)')
+      .eq('user_id', userId)
+      .eq('status', 'válida')
+    if (!tickets || tickets.length === 0) return
+    const expiredIds: number[] = []
+    const months: Record<string, number> = { ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11 }
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    for (const t of tickets) {
+      const d = (t.events as any).date
+      if (!d) continue
+      const m = (d as string).match(/^(\d+)\s+(\w+)\s+(\d+)$/)
+      if (m) {
+        const eventDate = new Date(parseInt(m[3]), months[m[2].toLowerCase()], parseInt(m[1]))
+        if (eventDate < today) expiredIds.push(t.id as number)
+      }
+    }
+    if (expiredIds.length > 0) {
+      await supabase.from('tickets').update({ status: 'usada' }).in('id', expiredIds)
+    }
+  } catch { /* fallback silencioso */ }
+}

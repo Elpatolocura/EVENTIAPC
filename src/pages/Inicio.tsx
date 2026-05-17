@@ -29,7 +29,18 @@ export default function Inicio() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const allEvents = events.map((ev: any) => ({
+  const months: Record<string, number> = { ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11 }
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const isPast = (dateStr: string) => {
+    const m = dateStr.match(/^(\d+)\s+(\w+)\s+(\d+)$/)
+    if (!m) return false
+    return new Date(parseInt(m[3]), months[m[2].toLowerCase()], parseInt(m[1])) < today
+  }
+
+  const allEvents = events
+    .filter((ev: any) => !ev.date || !isPast(ev.date))
+    .map((ev: any) => ({
     id: ev.id,
     title: ev.title,
     date: ev.date || 'Próximamente',

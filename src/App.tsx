@@ -27,6 +27,7 @@ import Balance from './pages/Balance'
 import Login from './pages/Login'
 import CrearCuenta from './pages/CrearCuenta'
 import RecuperarClave from './pages/RecuperarClave'
+import Semilla from './pages/Semilla'
 
 function App() {
   const { user, loading } = useAuth()
@@ -89,6 +90,7 @@ function App() {
           <Route path="/premium" element={<Premium />} />
           <Route path="/configuracion/suscripcion" element={<AdministrarSuscripcion />} />
           <Route path="/balance" element={<Balance />} />
+          <Route path="/semilla" element={<Semilla />} />
         </Routes>
       </main>
     </div>

@@ -1,20 +1,66 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
+import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 
 const ratings = [1, 2, 3, 4, 5]
 
 export default function Comentarios() {
   const { t } = useLanguage()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [rating, setRating] = useState(0)
   const [hover, setHover] = useState(0)
   const [form, setForm] = useState({ categoria: '', mensaje: '' })
   const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSent(true)
+    if (!user) { setErrorMsg('Debes iniciar sesión'); return }
+    setSending(true)
+    setErrorMsg('')
+    try {
+      const { error } = await supabase.from('feedback').insert({
+        user_id: user.id,
+        user_email: user.email,
+        rating,
+        category: form.categoria,
+        message: form.mensaje,
+      })
+      if (error) throw new Error(error.message)
+
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'Eventia <onboarding@resend.dev>',
+          to: ['radatova18@gmail.com'],
+          subject: `💬 Feedback de ${user.email || 'usuario'} — ${form.categoria}`,
+          html: `<h2>Nuevo feedback</h2>
+<p><strong>Email:</strong> ${user.email || 'N/A'}</p>
+<p><strong>Puntuación:</strong> ${'⭐'.repeat(rating)} (${rating}/5)</p>
+<p><strong>Categoría:</strong> ${form.categoria}</p>
+<p><strong>Mensaje:</strong></p>
+<p style="background:#f5f5f5;padding:12px;border-radius:8px;">${form.mensaje.replace(/\n/g, '<br>')}</p>
+<hr><p style="color:#999;font-size:12px;">Enviado desde Eventia</p>`,
+        }),
+      })
+      if (!res.ok) {
+        const errData = await res.json()
+        console.error('Resend error:', errData)
+      }
+
+      setSent(true)
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Error de conexión')
+    }
+    setSending(false)
   }
 
   if (sent) {
@@ -108,12 +154,15 @@ export default function Comentarios() {
           />
         </div>
 
+        {errorMsg && (
+          <p className="text-sm text-red-600 text-center">{errorMsg}</p>
+        )}
         <button
           type="submit"
-          disabled={!rating || !form.categoria || !form.mensaje}
+          disabled={!rating || !form.categoria || !form.mensaje || sending}
           className="w-full py-2.5 rounded-xl bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
-          {t('comentarios.enviar')}
+          {sending ? 'Enviando...' : t('comentarios.enviar')}
         </button>
       </form>
     </div>

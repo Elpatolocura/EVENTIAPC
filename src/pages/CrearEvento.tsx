@@ -196,6 +196,18 @@ export default function CrearEvento() {
 
   const handlePublish = async () => {
     if (!user) return
+    const months: Record<string, number> = { ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11 }
+    const dm = form.fecha.match(/^(\d+)\s+(\w+)\s+(\d+)$/)
+    if (dm) {
+      const [, d, m, y] = dm
+      const eventDate = new Date(parseInt(y), months[m.toLowerCase()], parseInt(d))
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      if (eventDate < today) {
+        setPublishError('No puedes publicar un evento con fecha anterior a hoy.')
+        return
+      }
+    }
     setSaving(true)
     setPublishError('')
     if (isEditing && eventId) {

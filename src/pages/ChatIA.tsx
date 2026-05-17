@@ -9,27 +9,49 @@ const STORAGE_KEY = 'yulianis_chat'
 const INACTIVITY_MS = 120000
 
 function renderContent(text: string, navigate: ReturnType<typeof useNavigate>, onBuyTicket?: (eventId: string, title: string) => void) {
-  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g)
-  return parts.map((part, i) => {
-    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
-    if (match) {
-      const [, label, url] = match
-      const isBuy = /comprar/i.test(label) && url.startsWith('/evento/')
-      const eventId = isBuy ? url.replace('/evento/', '') : null
+  const cardRegex = /\[CARD:([^\]]+)\]/g
+  const segments: { type: 'text' | 'card'; value: string; cardData?: string[] }[] = []
+  let lastIdx = 0, m: RegExpExecArray | null
+  while ((m = cardRegex.exec(text)) !== null) {
+    if (m.index > lastIdx) segments.push({ type: 'text', value: text.slice(lastIdx, m.index) })
+    segments.push({ type: 'card', value: m[1], cardData: m[1].split('|') })
+    lastIdx = cardRegex.lastIndex
+  }
+  if (lastIdx < text.length) segments.push({ type: 'text', value: text.slice(lastIdx) })
+
+  return segments.map((seg, segIdx) => {
+    if (seg.type === 'card' && seg.cardData && seg.cardData.length >= 2) {
+      const [eventId, title, date, city, price] = seg.cardData
       return (
-        <button
-          key={i}
-          type="button"
-          onClick={() => isBuy && onBuyTicket ? onBuyTicket(eventId!, label) : navigate(url)}
-          className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-            isBuy ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-          }`}
-        >
-          {label}
-        </button>
+        <div key={segIdx} className="border border-gray-200 rounded-xl p-3 my-2 bg-white shadow-sm">
+          <h4 className="font-semibold text-sm text-gray-900 mb-1">{title}</h4>
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500 mb-2">
+            {date && <span>📅 {date}</span>}
+            {city && <span>📍 {city}</span>}
+            {price && <span>💰 {price}</span>}
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => navigate(`/evento/${eventId}`)}
+              className="px-3 py-1 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 text-xs font-medium cursor-pointer">
+              Ver más
+            </button>
+            <button type="button" onClick={() => onBuyTicket ? onBuyTicket(eventId, title) : navigate(`/evento/${eventId}`)}
+              className="px-3 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 text-xs font-medium cursor-pointer">
+              Comprar entrada
+            </button>
+          </div>
+        </div>
       )
     }
-    return <span key={i}>{part}</span>
+    const linkParts = seg.value.split(/(\[BUY:[^\]]+\])/g)
+    return linkParts.map((part, i) => {
+      const buyMatch = part.match(/^\[BUY:([^\]]+):(\d+)\]$/)
+      if (buyMatch && onBuyTicket) {
+        const [, , qtyStr] = buyMatch
+        return null
+      }
+      return <span key={`${segIdx}-${i}`}>{part}</span>
+    })
   })
 }
 
@@ -62,7 +84,7 @@ export default function ChatIA() {
     getAllEvents().then((evts) => {
       if (evts.length > 0) {
         const list = evts.slice(0, 20).map((e: any) =>
-          `- [${e.title}](/evento/${e.id}) en ${e.city || 'varias ciudades'} el ${e.date || 'próximamente'} (${e.type === 'Gratis' ? 'Gratis' : e.price || 'consultar'})`
+          `- ${e.title} (ID:${e.id}) — ${e.city || 'varias ciudades'} — ${e.date || 'próximamente'} — ${e.type === 'Gratis' ? 'Gratis' : e.price || 'consultar'}`
         ).join('\n')
         setEventsContext(`Estos son los eventos disponibles actualmente:\n${list}\n\nLos usuarios pueden crear eventos, comprar entradas, chatear con organizadores, seguir a otros usuarios, y gestionar su perfil.`)
       } else {
@@ -115,14 +137,14 @@ INFORMACIÓN DE LA PLATAFORMA:
 ${eventsContext}
 
 Instrucciones importantes:
-- Cuando menciones un evento, usa el formato [Nombre del Evento](/evento/ID) para que el usuario pueda hacer clic e ir directo.
-- Cuando recomiendes un evento, sugiere al final: [Comprar entradas](/evento/ID)
-- Al final de cada respuesta, sugiere 1 o 2 acciones rápidas relevantes usando el formato [Acción Rápida](/ruta).
-  Ejemplos de acciones: [Ver más eventos](/inicio), [Crear evento](/crear-evento), [Mis entradas](/mis-entradas), [Eventos gratis](/inicio), [Ver todos](/inicio).
-- IMPORTANTE: Cuando el usuario te pida comprar entradas y ya tengas el evento y la cantidad, responde con el siguiente formato exacto al final de tu mensaje: [BUY:ID_EVENTO:CANTIDAD].
-  Por ejemplo: [BUY:abc-123:2] y luego continúa con tu mensaje de confirmación.
-  Si no sabes cuántas entradas, primero pregunta al usuario.
-  Solo usa [BUY:...] si el usuario te pidió explícitamente comprar.
+- Cuando el usuario pregunte por un evento o pida información, responde con el formato exacto:
+  [CARD:ID|Título|Fecha|Ciudad|Precio]
+  Ejemplo: [CARD:abc-123|Concierto Rock|15 Jun|Medellín|$50.000]
+  IMPORTANTE: Usa | como separador. Si falta algún dato, déjalo vacío (ej: abc-123|Título||Ciudad|).
+- Cuando el usuario te pida comprar entradas y ya tengas el ID y la cantidad, termina tu respuesta con: [BUY:ID:CANTIDAD]
+  Ejemplo: [BUY:abc-123:2]
+- Solo usa [BUY:...] si el usuario pidió explícitamente comprar.
+- NUNCA uses formato de link [texto](/ruta) — solo usa [CARD:...] para eventos y [BUY:...] para compras.
 - Responde siempre en español, de forma clara y concisa.
 - Sé cálida y usa emojis ocasionalmente.`
 
@@ -139,7 +161,7 @@ Instrucciones importantes:
         if (!error) {
           setMessages(prev => [...prev, {
             id: Date.now(), role: 'ai',
-            content: `${cleanResult || '✅ Entrada comprada correctamente.'} Puedes ver tus entradas en [Mis Entradas](/mis-entradas).`
+            content: `${cleanResult || '✅ Entrada comprada correctamente.'} Puedes ver tus entradas en Mis Entradas.`
           }])
         } else {
           setMessages(prev => [...prev, {
@@ -173,7 +195,7 @@ Instrucciones importantes:
       setMessages(prev => [...prev, {
         id: Date.now(),
         role: 'ai',
-        content: `✅ ¡Entrada${buyQty > 1 ? 's' : ''} comprada${buyQty > 1 ? 's' : ''} para *${buyModal.title}*! Puedes ver tus entradas en [Mis Entradas](/mis-entradas).`
+        content: `✅ ¡Entrada${buyQty > 1 ? 's' : ''} comprada${buyQty > 1 ? 's' : ''} para ${buyModal.title}! Puedes ver tus entradas en Mis Entradas.`
       }])
     }
   }
