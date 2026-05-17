@@ -284,23 +284,25 @@ export async function userHasTicket(userId: string, eventId: string) {
 }
 
 const defaultPrefs = { follow_publishes_event: true, new_follower: true, new_message: true, event_near_date: true }
-const storageKey = (userId: string) => `notif_prefs_${userId}`
 
 export async function getNotificationPreferences(userId: string) {
   try {
-    const { data } = await supabase.from('profiles').select('notif_prefs').eq('id', userId).maybeSingle()
-    if (data?.notif_prefs) return { ...defaultPrefs, ...data.notif_prefs as Record<string, boolean> }
-  } catch { /* column might not exist yet */ }
-  const stored = localStorage.getItem(storageKey(userId))
-  if (stored) return { ...defaultPrefs, ...JSON.parse(stored) }
+    const { data } = await supabase.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle()
+    if (data) {
+      const { user_id, updated_at, ...prefs } = data
+      return { ...defaultPrefs, ...prefs }
+    }
+  } catch {}
   return { ...defaultPrefs }
 }
 
 export async function updateNotificationPreferences(userId: string, prefs: Record<string, boolean>) {
-  localStorage.setItem(storageKey(userId), JSON.stringify(prefs))
   try {
-    await supabase.from('profiles').update({ notif_prefs: prefs }).eq('id', userId)
-  } catch { /* column might not exist yet */ }
+    await supabase.from('notification_preferences').upsert(
+      { user_id: userId, ...prefs, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    )
+  } catch (e) { console.error('Error saving notification prefs:', e) }
   return { error: null }
 }
 
