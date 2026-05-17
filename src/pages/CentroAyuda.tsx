@@ -11,8 +11,8 @@ const faqs = [
 
 const contactChannels = [
   { icon: '💬', label: 'Chat en vivo', desc: 'Lun - Vie, 9:00 - 18:00' },
-  { icon: '📧', label: 'correo@eventia.com', desc: 'Respuesta en 24 horas' },
-  { icon: '📞', label: '+57 601 234 5678', desc: 'Línea de atención nacional' },
+  { icon: '📧', label: 'radatova18@gmail.com', desc: 'Respuesta en 24 horas' },
+  { icon: '📞', label: '3052248972', desc: 'Línea de atención nacional' },
 ]
 
 export default function CentroAyuda() {
