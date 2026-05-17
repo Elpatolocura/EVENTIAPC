@@ -13,7 +13,7 @@ export default function ToastNotificacion({ id, title, message, data, onClose }:
   const navigate = useNavigate()
   const duration = 30
   const [remaining, setRemaining] = useState(duration)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
   const startRef = useRef(Date.now())
 
   useEffect(() => {

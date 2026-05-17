@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { generateSeedEvents } from '../data/seed-events'
 
 export default function Semilla() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [log, setLog] = useState<string[]>([])

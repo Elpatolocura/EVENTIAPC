@@ -47,7 +47,7 @@ function renderContent(text: string, navigate: ReturnType<typeof useNavigate>, o
     return linkParts.map((part, i) => {
       const buyMatch = part.match(/^\[BUY:([^\]]+):(\d+)\]$/)
       if (buyMatch && onBuyTicket) {
-        const [, , qtyStr] = buyMatch
+        const [, , _qtyStr] = buyMatch
         return null
       }
       return <span key={`${segIdx}-${i}`}>{part}</span>

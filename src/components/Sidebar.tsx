@@ -57,9 +57,9 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 >
                   <span className="text-lg">{item.icon}</span>
                   {!collapsed && <span>{item.label}</span>}
-                  {'badge' in item && item.badge > 0 && (
+                  {(item as any).badge > 0 && (
                     <span className={`${collapsed ? 'absolute -top-1 -right-1' : 'ml-auto'} bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center`}>
-                      {item.badge > 99 ? '99+' : item.badge}
+                      {(item as any).badge > 99 ? '99+' : (item as any).badge}
                     </span>
                   )}
                 </NavLink>

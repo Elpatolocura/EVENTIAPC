@@ -826,7 +826,7 @@ export default function Chat() {
                       await fetch('https://kuamqlxbaeclxspmlztv.supabase.co/functions/v1/send-report', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ type: 'chat', target_id: event?.id || 'desconocido', reason: reportReason, details: reportMessage }),
+                        body: JSON.stringify({ type: 'chat', target_id: selectedId || 'desconocido', reason: reportReason, details: reportMessage }),
                       })
                       setReportSent(true)
                     } catch { setReportSent(true) }

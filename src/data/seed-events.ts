@@ -22,8 +22,6 @@ const cities = [
   'Sincelejo', 'Valledupar', 'Montería', 'Popayán', 'Tunja',
 ]
 
-const categories = ['Música', 'Deportes', 'Tecnología', 'Gastronomía', 'Arte', 'Negocios', 'Moda', 'Educación', 'Salud', 'Teatro']
-
 const eventTemplates: { title: string; desc: string; cat: string; price: string; cap: string; dur: string }[] = [
   { title: 'Concierto de {banda} en vivo', desc: 'Disfruta de una noche inolvidable con {banda} en el mejor escenario de {ciudad}. Música en vivo, luces y sonido de primera calidad. No te pierdas este espectáculo único.', cat: 'Música', price: '85000', cap: '500', dur: '4 horas' },
   { title: 'Feria gastronómica {nombre}', desc: 'Los mejores chefs de {ciudad} se reúnen para ofrecerte una experiencia culinaria inigualable. Degustaciones, show cooking y platos tradicionales con un toque moderno.', cat: 'Gastronomía', price: '35000', cap: '300', dur: '6 horas' },
