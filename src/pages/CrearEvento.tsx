@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useLanguage } from '../context/LanguageContext'
 import { createEvent, getUserCategories, addUserCategory } from '../lib/db'
 
 const predefinedCategories = [
@@ -31,7 +30,6 @@ const steps = [
 ]
 
 export default function CrearEvento() {
-  const { t } = useLanguage()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
