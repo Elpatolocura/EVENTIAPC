@@ -51,7 +51,7 @@ export default function Inicio() {
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 400)
-      setShowStickyHeader(window.scrollY > 120)
+      setShowStickyHeader(window.scrollY > 80)
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
@@ -154,27 +154,27 @@ export default function Inicio() {
   return (
     <div className="max-w-5xl mx-auto">
       {showStickyHeader && (
-        <div className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm">
-          <div className="max-w-5xl mx-auto px-4 py-2.5">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+          <div className="max-w-5xl mx-auto px-4 py-3">
             <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold text-gray-900 truncate shrink-0 max-w-[120px]">{userName}</span>
+              <span className="text-sm font-semibold text-gray-900 truncate shrink-0 max-w-[140px]">{userName}</span>
               <div className="relative flex-1 min-w-0">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
                   placeholder={t('inicio.buscar')}
-                  className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
               </div>
               {hasActiveFilters && (
                 <button type="button" onClick={clearFilters}
-                  className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
+                  className="shrink-0 px-2.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
                   {t('inicio.limpiar')}
                 </button>
               )}
             </div>
             {activeFilterLabels.length > 0 && (
-              <div className="flex gap-1.5 mt-1.5 overflow-x-auto pb-0.5">
+              <div className="flex gap-1.5 mt-2 overflow-x-auto pb-0.5">
                 {activeFilterLabels.map((label) => (
                   <span key={label} className="shrink-0 px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 text-[11px] font-medium">{label}</span>
                 ))}
@@ -183,7 +183,7 @@ export default function Inicio() {
           </div>
         </div>
       )}
-      <div className="mb-8">
+      <div className={`${showStickyHeader ? 'pt-[72px] ' : ''}mb-8`}>
         <h1 className="text-2xl font-bold text-gray-900">
           {t('inicio.bienvenido')}, {userName} 👋
         </h1>
