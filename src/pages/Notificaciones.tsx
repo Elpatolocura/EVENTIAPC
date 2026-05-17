@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useNotification } from '../context/NotificationContext'
 import { getNotifications } from '../lib/db'
@@ -6,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import { useLanguage } from '../context/LanguageContext'
 
 export default function Notificaciones() {
+  const navigate = useNavigate()
   const { t } = useLanguage()
   const { user } = useAuth()
   const { refreshUnread } = useNotification()
@@ -17,6 +19,7 @@ export default function Notificaciones() {
     desc: n.message || '',
     time: new Date(n.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }),
     unread: !n.read,
+    data: n.data || {},
   })
 
   const load = useCallback(async () => {
@@ -42,13 +45,19 @@ export default function Notificaciones() {
     if (user) { await supabase.from('notifications').update({ read: true }).eq('user_id', user.id); refreshUnread() }
   }
 
-  const toggleRead = async (id: number) => {
-    const n = notifications.find((x) => x.id === id)
-    if (!n) return
-    const newUnread = !n.unread
-    setNotifications((prev) => prev.map((x) => (x.id === id ? { ...x, unread: newUnread } : x)))
-    await supabase.from('notifications').update({ read: !newUnread }).eq('id', id)
-    refreshUnread()
+  const handleClick = async (n: any) => {
+    if (n.unread) {
+      setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, unread: false } : x)))
+      await supabase.from('notifications').update({ read: true }).eq('id', n.id)
+      refreshUnread()
+    }
+    if (n.data?.type === 'new_follower' && n.data.actor_id) {
+      navigate(`/perfil/${n.data.actor_id}`)
+    } else if (n.data?.type === 'new_event' && n.data.event_id) {
+      navigate(`/evento/${n.data.event_id}`)
+    } else if (n.data?.type === 'new_message' && n.data.event_id) {
+      navigate(`/chat/${n.data.event_id}`)
+    }
   }
 
   return (
@@ -76,7 +85,7 @@ export default function Notificaciones() {
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
           {notifications.map((n) => (
-            <button key={n.id} type="button" onClick={() => toggleRead(n.id)}
+            <button key={n.id} type="button" onClick={() => handleClick(n)}
               className={`w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-gray-50 transition-colors cursor-pointer ${n.unread ? 'bg-indigo-50/40' : ''}`}>
               <span className="text-xl mt-0.5 shrink-0">🔔</span>
               <div className="flex-1 min-w-0">

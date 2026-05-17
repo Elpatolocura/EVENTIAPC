@@ -8,6 +8,15 @@
   --primary-border: #c7d2fe;
 }
 
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
 .theme-blue { --primary: #2563eb; --primary-hover: #1d4ed8; --primary-light: #eff6ff; --primary-ring: #3b82f6; --primary-border: #bfdbfe; }
 .theme-green { --primary: #16a34a; --primary-hover: #15803d; --primary-light: #f0fdf4; --primary-ring: #22c55e; --primary-border: #bbf7d0; }
 .theme-red { --primary: #dc2626; --primary-hover: #b91c1c; --primary-light: #fef2f2; --primary-ring: #ef4444; --primary-border: #fecaca; }
