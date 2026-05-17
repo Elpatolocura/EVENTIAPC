@@ -41,6 +41,8 @@ export default function Chat() {
   const [eventDate, setEventDate] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const msgRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null)
 
   const selected = chatList.find((c: any) => c.id === selectedId)
 
@@ -119,6 +121,11 @@ export default function Chat() {
     })
     setReplyingTo(null)
   }, [selectedId, user?.id])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [msgs])
+
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const autoResize = () => {
@@ -397,7 +404,7 @@ export default function Chat() {
               </div>
             </div>
 
-            <div className={`flex-1 overflow-y-auto px-6 py-4 space-y-3 ${chatBg} ${fontSize === 'base' ? 'text-base' : 'text-sm'}`}>
+            <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto px-6 py-4 space-y-3 ${chatBg} ${fontSize === 'base' ? 'text-base' : 'text-sm'}`}>
               {msgs.map((msg) => {
                 const isMe = msg.from === 'me'
                 const senderName = isMe ? t('chat.tu') : msg.senderName || 'Usuario'
@@ -448,7 +455,7 @@ export default function Chat() {
                         <div className="relative flex items-end gap-1">
                           {!isMe && (
                             <button type="button" onClick={() => setMenuMsgId(menuMsgId === msg.id ? null : msg.id)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="Opciones">
+                              className="opacity-40 hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="Opciones">
                               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
                             </button>
                           )}
@@ -488,7 +495,7 @@ export default function Chat() {
                           </div>
                           {isMe && (
                             <button type="button" onClick={() => setMenuMsgId(menuMsgId === msg.id ? null : msg.id)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="Opciones">
+                              className="opacity-40 hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="Opciones">
                               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
                             </button>
                           )}
@@ -522,6 +529,7 @@ export default function Chat() {
                   </div>
                 </div>
               )})}
+              <div ref={messagesEndRef} />
             </div>
 
             <form onSubmit={handleSend} className="p-4 bg-white border-t border-gray-200 relative">
