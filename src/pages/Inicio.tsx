@@ -10,7 +10,7 @@ export default function Inicio() {
   const { t } = useLanguage()
   const [profile, setProfile] = useState<Record<string, any> | null>(null)
   const [search, setSearch] = useState('')
-  const [activeFilter, setActiveFilter] = useState('populares')
+  const [activeFilter, setActiveFilter] = useState('')
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set())
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -101,13 +101,13 @@ export default function Inicio() {
 
   const clearFilters = () => {
     setSearch('')
-    setActiveFilter('populares')
+    setActiveFilter('')
     setSelectedTypes(new Set())
     setSelectedCategories(new Set())
   }
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
-  const hasActiveFilters = search || activeFilter !== 'populares' || selectedTypes.size > 0 || selectedCategories.size > 0
+  const hasActiveFilters = search || activeFilter !== '' || selectedTypes.size > 0 || selectedCategories.size > 0
 
   const getFilteredEvents = () => {
     let result = allEvents
