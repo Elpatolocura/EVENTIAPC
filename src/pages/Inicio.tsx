@@ -147,7 +147,7 @@ export default function Inicio() {
   else if (activeFilter === 'hoy') activeFilterLabels.push('Hoy')
   else if (activeFilter === 'mañana') activeFilterLabels.push('Mañana')
   selectedCategories.forEach((c) => activeFilterLabels.push(c))
-  selectedTypes.forEach((t) => activeFilterLabels.push(t === 'Gratis' ? t('inicio.gratis') : t === 'Pagado' ? t('inicio.pagado') : t))
+  selectedTypes.forEach((typ) => activeFilterLabels.push(typ === 'Gratis' ? t('inicio.gratis') : typ === 'Pagado' ? t('inicio.pagado') : typ))
 
   const userName = profile?.nombre || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario'
 
