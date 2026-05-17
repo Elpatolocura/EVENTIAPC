@@ -44,10 +44,10 @@ export default function NotificacionesConfig() {
     setSaving(true)
     setSaved(false)
     setErrorMsg('')
-    const { error } = await updateNotificationPreferences(user.id, prefs)
+    const result = await updateNotificationPreferences(user.id, prefs)
     setSaving(false)
-    if (error) {
-      setErrorMsg('Error al guardar: ' + (error.message || 'verifica que la tabla notification_preferences exista en Supabase'))
+    if (result?.error) {
+      setErrorMsg('Error al guardar: verifica que la tabla notification_preferences exista en Supabase')
     } else {
       setSaved(true)
     }

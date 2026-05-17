@@ -187,9 +187,9 @@ export default function CrearEvento() {
       if (!error) navigate('/mis-eventos')
       else setPublishError('No se pudo guardar el borrador.')
     } else {
-      const { data, error } = await createEvent(buildEventData('borrador'))
+      const { data: d } = await createEvent(buildEventData('borrador'))
       setSaving(false)
-      if (data) navigate('/mis-eventos')
+      if (d) navigate('/mis-eventos')
       else setPublishError('No se pudo guardar el borrador.')
     }
   }
@@ -204,9 +204,9 @@ export default function CrearEvento() {
       if (error) setPublishError('No se pudo publicar el evento.')
       else setPublishedId(eventId)
     } else {
-      const { data, error } = await createEvent(buildEventData('publicado'))
+      const { data: d2 } = await createEvent(buildEventData('publicado'))
       setSaving(false)
-      if (data) setPublishedId(data.id)
+      if (d2) setPublishedId(d2.id)
       else setPublishError('No se pudo publicar el evento. Asegúrate de haber ejecutado el SQL en Supabase.')
     }
   }
@@ -214,14 +214,6 @@ export default function CrearEvento() {
   const previewPhotos = photos.filter((p) => p.url)
 
   const [validationMsg, setValidationMsg] = useState('')
-
-  const canGoNext = () => {
-    if (step === 1) return form.titulo.trim().length > 0 && form.descripcion.trim().length > 0 && form.categoria.length > 0
-    if (step === 2) return form.fecha.trim().length > 0 && form.hora.trim().length > 0 && form.ciudad.length > 0
-    if (step === 3) return form.precio.trim().length > 0 && form.aforo.trim().length > 0 && form.telefonoContacto.trim().length > 0
-    if (step === 4) return photos.some((p) => p.url)
-    return true
-  }
 
   const handleNext = () => {
     const missing: string[] = []
