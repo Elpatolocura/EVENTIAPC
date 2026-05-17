@@ -263,6 +263,19 @@ export async function getHiddenMessageIds(userId: string) {
   } catch { return new Set<number>() }
 }
 
+export async function getTodayMessagesCount(userId: string) {
+  try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const { count } = await supabase
+      .from('chat_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', today.toISOString())
+    return count || 0
+  } catch { return 0 }
+}
+
 export async function userHasTicket(userId: string, eventId: string) {
   try {
     const { data } = await supabase.from('tickets').select('id').eq('user_id', userId).eq('event_id', eventId).maybeSingle()

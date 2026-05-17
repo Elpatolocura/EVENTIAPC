@@ -2,14 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
-import { getChatMessages, sendChatMessage, deleteChatMessage, hideMessageForUser, getHiddenMessageIds } from '../lib/db'
+import { getChatMessages, sendChatMessage, deleteChatMessage, hideMessageForUser, getHiddenMessageIds, getTodayMessagesCount } from '../lib/db'
 import { supabase } from '../lib/supabase'
 
 const emojis = ['😀','😎','🔥','❤️','🎉','👍','😢','😂','😍','🎶','💪','🙌','✨','🥳','💯','👏','😅','🤔','🎸','🍕','🎭','📸','🎤','💃','🕺','🌮','🍷','🎪','🤩','💫']
 
 export default function Chat() {
   const { t } = useLanguage()
-  const { user } = useAuth()
+  const { user, isPremium } = useAuth()
   const { eventId } = useParams<{ eventId: string }>()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [chatList, setChatList] = useState<any[]>([])
@@ -40,6 +40,8 @@ export default function Chat() {
   const [attendeeCount, setAttendeeCount] = useState(0)
   const [eventDate, setEventDate] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
+  const [dailyCount, setDailyCount] = useState(0)
+  const [limitMsg, setLimitMsg] = useState('')
   const msgRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const messagesContainerRef = useRef<HTMLDivElement | null>(null)
@@ -48,6 +50,7 @@ export default function Chat() {
 
   useEffect(() => {
     if (!user) return
+    if (!isPremium) getTodayMessagesCount(user.id).then(setDailyCount)
     supabase.from('tickets').select('*, events(*)').eq('user_id', user.id).then(async ({ data: tickets }) => {
       if (tickets && tickets.length > 0) {
         const seen = new Set<string>()
@@ -139,9 +142,26 @@ export default function Chat() {
     e.preventDefault()
     if (!newMsg.trim() || !selectedId || !user) return
     const text = newMsg.trim()
+
+    if (!isPremium) {
+      const lineCount = text.split('\n').length
+      if (lineCount > 40) {
+        setLimitMsg(`Máximo 40 líneas por mensaje (tienes ${lineCount})`)
+        return
+      }
+      const count = await getTodayMessagesCount(user.id)
+      setDailyCount(count)
+      if (count >= 40) {
+        setLimitMsg('Límite diario alcanzado (40 mensajes). Actualiza a Premium para mensajes ilimitados.')
+        return
+      }
+    }
+
+    setLimitMsg('')
     setNewMsg('')
     setReplyingTo(null)
     await sendChatMessage({ event_id: selectedId, user_id: user.id, text })
+    if (!isPremium) setDailyCount(c => c + 1)
     const [messages, hiddenIds] = await Promise.all([
       getChatMessages(selectedId),
       getHiddenMessageIds(user.id),
@@ -532,9 +552,33 @@ export default function Chat() {
                   </div>
                 </div>
               )})}
+              {msgs.length === 0 && selected && (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-800 mb-1">No hay mensajes aún</h3>
+                  <p className="text-sm text-gray-500 max-w-xs">Sé el primero en romper el hielo 💬</p>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
+            {!isPremium && limitMsg && (
+              <div className="px-4 py-2 bg-red-50 border-t border-red-100 text-xs text-red-600 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{limitMsg}</span>
+              </div>
+            )}
+            {!isPremium && !limitMsg && dailyCount > 0 && (
+              <div className="px-4 py-1.5 bg-amber-50 border-t border-amber-100 text-[11px] text-amber-600 flex items-center gap-1.5">
+                <span>📨</span>
+                <span>{dailyCount}/40 mensajes hoy</span>
+                {dailyCount >= 35 && <span className="font-semibold">— Quedan pocos</span>}
+              </div>
+            )}
             <form onSubmit={handleSend} className="p-4 bg-white border-t border-gray-200 relative">
               {replyingTo && (
                 <div className="flex items-center justify-between mb-2 px-3 py-2 bg-indigo-50 rounded-xl text-xs text-indigo-600">
@@ -620,7 +664,11 @@ export default function Chat() {
                 <textarea
                   ref={textareaRef}
                   value={newMsg}
-                  onChange={(e) => { setNewMsg(e.target.value); autoResize() }}
+                  onChange={(e) => {
+                    const lines = e.target.value.split('\n')
+                    if (!isPremium && lines.length > 40) return
+                    setNewMsg(e.target.value); autoResize()
+                  }}
                   placeholder={t('chat.escribe')}
                   rows={1}
                   className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none overflow-y-auto leading-[22px]"
