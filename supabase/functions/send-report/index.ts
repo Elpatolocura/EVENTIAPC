@@ -27,22 +27,19 @@ Deno.serve(async (req) => {
     const userId = userData.id
     const userEmail = userData.email || ''
 
-    const { rating, category, message } = await req.json()
-    if (!rating || !category || !message) {
-      return new Response(JSON.stringify({ error: 'Faltan campos' }), { status: 400, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' } })
+    const { type, target_id, reason, details } = await req.json()
+    if (!type || !target_id || !reason) {
+      return new Response(JSON.stringify({ error: 'Faltan campos requeridos' }), { status: 400, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' } })
     }
 
-    const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=nombre`, {
-      headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` },
-    })
-    const profiles = await profileRes.json()
-    const userName = profiles?.[0]?.nombre || userEmail || 'Anónimo'
-
-    await fetch(`${SUPABASE_URL}/rest/v1/feedback`, {
+    await fetch(`${SUPABASE_URL}/rest/v1/reports`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ user_id: userId, user_email: userEmail, rating, category, message }),
+      body: JSON.stringify({ reporter_id: userId, reporter_email: userEmail, type, target_id, reason, details }),
     })
+
+    const typeLabel = type === 'evento' ? 'Evento' : 'Chat'
+    const detailText = details ? `<p><strong>Detalles:</strong></p><p style="background:#f5f5f5;padding:12px;border-radius:8px;">${details.replace(/\n/g, '<br>')}</p>` : ''
 
     if (RESEND_KEY) {
       await fetch('https://api.resend.com/emails', {
@@ -51,8 +48,13 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           from: 'Eventia <onboarding@resend.dev>',
           to: [TO_EMAIL],
-          subject: `💬 Feedback de ${userName} — ${category}`,
-          html: `<h2>Nuevo feedback</h2><p><strong>Email:</strong> ${userEmail}</p><p><strong>Puntuación:</strong> ${'⭐'.repeat(rating)} (${rating}/5)</p><p><strong>Categoría:</strong> ${category}</p><p><strong>Mensaje:</strong></p><p style="background:#f5f5f5;padding:12px;border-radius:8px;">${message.replace(/\n/g, '<br>')}</p><hr><p style="color:#999;font-size:12px;">Enviado desde Eventia</p>`,
+          subject: `🚩 Reporte de ${typeLabel} — ${reason}`,
+          html: `<h2>🚩 Nuevo reporte de ${typeLabel}</h2>
+<p><strong>Reportado por:</strong> ${userEmail}</p>
+<p><strong>ID del ${typeLabel.toLowerCase()}:</strong> ${target_id}</p>
+<p><strong>Motivo:</strong> ${reason}</p>
+${detailText}
+<hr><p style="color:#999;font-size:12px;">Enviado desde Eventia</p>`,
         }),
       })
     }

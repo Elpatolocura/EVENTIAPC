@@ -35,7 +35,9 @@ export default function DetalleEvento() {
   const [newReviewText, setNewReviewText] = useState('')
   const [showReport, setShowReport] = useState(false)
   const [reportReason, setReportReason] = useState('')
+  const [reportDetails, setReportDetails] = useState('')
   const [reportSent, setReportSent] = useState(false)
+  const [sendingReport, setSendingReport] = useState(false)
   const [isFav, setIsFav] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showStickyMenu, setShowStickyMenu] = useState(false)
@@ -488,7 +490,7 @@ export default function DetalleEvento() {
                 <span className="text-4xl block mb-3">✅</span>
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('reporte.enviado')}</h3>
                 <p className="text-sm text-gray-500 mb-6">{t('reporte.gracias')}</p>
-                <button type="button" onClick={() => { setShowReport(false); setReportSent(false); setReportReason('') }}
+                <button type="button" onClick={() => { setShowReport(false); setReportSent(false); setReportReason(''); setReportDetails('') }}
                   className="px-6 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer">{t('reporte.cerrar')}</button>
               </div>
             ) : (
@@ -505,11 +507,31 @@ export default function DetalleEvento() {
                     {reportReason === opt.value && <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>}
                   </button>
                 ))}
-                <div className="flex gap-3 mt-5">
-                  <button type="button" onClick={() => { setShowReport(false); setReportReason('') }}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Describe los detalles (opcional)</label>
+                  <textarea value={reportDetails} onChange={(e) => setReportDetails(e.target.value)}
+                    placeholder="Escribe aquí los detalles de tu denuncia..."
+                    rows={3}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" />
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <button type="button" onClick={() => { setShowReport(false); setReportReason(''); setReportDetails('') }}
                     className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer">{t('pago.cancelar')}</button>
-                  <button type="button" onClick={() => setReportSent(true)} disabled={!reportReason}
-                    className="flex-1 py-2.5 rounded-xl bg-red-600 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">{t('reporte.enviar')}</button>
+                  <button type="button" onClick={async () => {
+                    if (!reportReason) return
+                    setSendingReport(true)
+                    try {
+                      const token = (await supabase.auth.getSession()).data.session?.access_token
+                      await fetch('https://kuamqlxbaeclxspmlztv.supabase.co/functions/v1/send-report', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ type: 'evento', target_id: id, reason: reportReason, details: reportDetails }),
+                      })
+                      setReportSent(true)
+                    } catch { setReportSent(true) }
+                    finally { setSendingReport(false) }
+                  }} disabled={!reportReason || sendingReport}
+                    className="flex-1 py-2.5 rounded-xl bg-red-600 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">{sendingReport ? 'Enviando...' : t('reporte.enviar')}</button>
                 </div>
               </>
             )}

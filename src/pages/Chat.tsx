@@ -30,8 +30,12 @@ export default function Chat() {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [reportSent, setReportSent] = useState(false)
+
   const [reportReason, setReportReason] = useState('')
+
   const [reportMessage, setReportMessage] = useState('')
+
+  const [sendingReport, setSendingReport] = useState(false)
   const [menuMsgId, setMenuMsgId] = useState<number | null>(null)
   const [replyingTo, setReplyingTo] = useState<{ id: number; text: string } | null>(null)
   const [msgs, setMsgs] = useState<{ id: number; from: string; text: string; time: string; senderName: string; senderAvatar: string | null; replyTo?: { id: number; text: string }; media?: { url: string; type: string } }[]>([])
@@ -814,10 +818,22 @@ export default function Chat() {
                     className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer">
                     Cancelar
                   </button>
-                  <button type="button" onClick={() => setReportSent(true)}
-                    disabled={!reportReason}
+                  <button type="button" onClick={async () => {
+                    if (!reportReason) return
+                    setSendingReport(true)
+                    try {
+                      const token = (await supabase.auth.getSession()).data.session?.access_token
+                      await fetch('https://kuamqlxbaeclxspmlztv.supabase.co/functions/v1/send-report', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ type: 'chat', target_id: event?.id || 'desconocido', reason: reportReason, details: reportMessage }),
+                      })
+                      setReportSent(true)
+                    } catch { setReportSent(true) }
+                    finally { setSendingReport(false) }
+                  }} disabled={!reportReason || sendingReport}
                     className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer">
-                    Enviar reporte
+                    {sendingReport ? 'Enviando...' : 'Enviar reporte'}
                   </button>
                 </div>
               </>

@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
-import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 
 const ratings = [1, 2, 3, 4, 5]
+const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-feedback`
 
 export default function Comentarios() {
   const { t } = useLanguage()
-  const { user } = useAuth()
   const navigate = useNavigate()
   const [rating, setRating] = useState(0)
   const [hover, setHover] = useState(0)
@@ -19,43 +18,20 @@ export default function Comentarios() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) { setErrorMsg('Debes iniciar sesión'); return }
     setSending(true)
     setErrorMsg('')
     try {
-      const { error } = await supabase.from('feedback').insert({
-        user_id: user.id,
-        user_email: user.email,
-        rating,
-        category: form.categoria,
-        message: form.mensaje,
-      })
-      if (error) throw new Error(error.message)
+      const session = await supabase.auth.getSession()
+      const token = session.data.session?.access_token
+      if (!token) { setErrorMsg('Debes iniciar sesión'); setSending(false); return }
 
-      const res = await fetch('https://api.resend.com/emails', {
+      const res = await fetch(FN_URL, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'Eventia <onboarding@resend.dev>',
-          to: ['radatova18@gmail.com'],
-          subject: `💬 Feedback de ${user.email || 'usuario'} — ${form.categoria}`,
-          html: `<h2>Nuevo feedback</h2>
-<p><strong>Email:</strong> ${user.email || 'N/A'}</p>
-<p><strong>Puntuación:</strong> ${'⭐'.repeat(rating)} (${rating}/5)</p>
-<p><strong>Categoría:</strong> ${form.categoria}</p>
-<p><strong>Mensaje:</strong></p>
-<p style="background:#f5f5f5;padding:12px;border-radius:8px;">${form.mensaje.replace(/\n/g, '<br>')}</p>
-<hr><p style="color:#999;font-size:12px;">Enviado desde Eventia</p>`,
-        }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ rating, category: form.categoria, message: form.mensaje }),
       })
-      if (!res.ok) {
-        const errData = await res.json()
-        console.error('Resend error:', errData)
-      }
-
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Error al enviar')
       setSent(true)
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Error de conexión')

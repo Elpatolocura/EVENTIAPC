@@ -1,7 +1,3 @@
--- =============================================
--- FEEDBACK — User comments & suggestions
--- =============================================
-
 CREATE TABLE IF NOT EXISTS public.feedback (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
