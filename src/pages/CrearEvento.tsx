@@ -109,16 +109,11 @@ export default function CrearEvento() {
     )
   }
 
-  const handlePublish = async () => {
-    if (!user) return
-    setSaving(true)
-    setPublishError('')
+  const buildEventData = (status: string) => {
     const photoUrls = photos.filter((p) => p.url).map((p) => p.url!)
     const priceValue = form.precio ? `$${form.precio.replace(/^[$]/, '')}` : 'Gratis'
-    const typeValue = priceValue === 'Gratis' ? 'Gratis' : 'Pagado'
-
-    const { data, error } = await createEvent({
-      organizer_id: user.id,
+    return {
+      organizer_id: user!.id,
       title: form.titulo || 'Evento sin título',
       description: form.descripcion,
       category: form.categoria,
@@ -136,11 +131,30 @@ export default function CrearEvento() {
       accessibility: form.accesibilidad,
       pets: form.mascotas,
       photos: photoUrls,
-      type: typeValue,
+      type: priceValue === 'Gratis' ? 'Gratis' : 'Pagado',
       services: selectedServices,
-      status: 'publicado',
-    })
+      status,
+    }
+  }
 
+  const handleSaveDraft = async () => {
+    if (!user) return
+    setSaving(true)
+    setPublishError('')
+    const { data, error } = await createEvent(buildEventData('borrador'))
+    setSaving(false)
+    if (data) {
+      navigate('/mis-eventos')
+    } else if (error) {
+      setPublishError('No se pudo guardar el borrador.')
+    }
+  }
+
+  const handlePublish = async () => {
+    if (!user) return
+    setSaving(true)
+    setPublishError('')
+    const { data, error } = await createEvent(buildEventData('publicado'))
     setSaving(false)
     if (data) {
       setPublishedId(data.id)
@@ -779,6 +793,14 @@ export default function CrearEvento() {
                     Cancelar
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  disabled={saving}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center gap-1"
+                >
+                  📄 Borrador
+                </button>
                 <button
                   type="button"
                   onClick={() => setStep(step + 1)}
