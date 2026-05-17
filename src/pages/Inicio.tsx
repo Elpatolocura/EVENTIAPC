@@ -12,6 +12,7 @@ export default function Inicio() {
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState('todos')
   const [ticketType, setTicketType] = useState('todos')
+  const [categoryFilter, setCategoryFilter] = useState('todos')
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [events, setEvents] = useState<any[]>([])
   const [favorites, setFavorites] = useState<Set<number>>(new Set())
@@ -61,11 +62,8 @@ export default function Inicio() {
     return new Date(parseInt(m[3]), months[m[2].toLowerCase()], parseInt(m[1])) < today
   }
 
-  const userCategories = profile?.categorias?.length ? profile.categorias.map((c: string) => c.toLowerCase()) : null
-
   const allEvents = events
     .filter((ev: any) => !ev.date || !isPast(ev.date))
-    .filter((ev: any) => !userCategories || userCategories.includes((ev.category || 'General').toLowerCase()))
     .map((ev: any) => ({
     id: ev.id,
     title: ev.title,
@@ -80,6 +78,7 @@ export default function Inicio() {
   }))
 
   const popularEvents = [...allEvents].sort((a, b) => b.attendees - a.attendees).slice(0, 6)
+  const eventCategories = [...new Set(allEvents.map((e) => e.cat))].sort()
 
   const filters = [
     { key: 'todos', label: t('inicio.todos'), count: allEvents.length },
@@ -90,15 +89,19 @@ export default function Inicio() {
     setSearch('')
     setActiveFilter('todos')
     setTicketType('todos')
+    setCategoryFilter('todos')
   }
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
-  const hasActiveFilters = search || activeFilter !== 'todos' || ticketType !== 'todos'
+  const hasActiveFilters = search || activeFilter !== 'todos' || ticketType !== 'todos' || categoryFilter !== 'todos'
 
   const getFilteredEvents = () => {
     let result = allEvents
     if (activeFilter === 'populares') {
       result = popularEvents
+    }
+    if (categoryFilter !== 'todos') {
+      result = result.filter((e) => e.cat.toLowerCase() === categoryFilter.toLowerCase())
     }
     if (ticketType !== 'todos') {
       result = result.filter((e) => e.type === ticketType)
@@ -199,6 +202,27 @@ export default function Inicio() {
             }`}>
               {f.count}
             </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+        <button type="button" onClick={() => setCategoryFilter('todos')}
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+            categoryFilter === 'todos'
+              ? 'bg-indigo-100 text-indigo-700'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}>
+          Ver todo
+        </button>
+        {eventCategories.map((cat) => (
+          <button key={cat} type="button" onClick={() => setCategoryFilter(cat)}
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              categoryFilter === cat
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}>
+            {cat}
           </button>
         ))}
       </div>
