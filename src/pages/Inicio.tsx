@@ -12,7 +12,7 @@ export default function Inicio() {
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState('populares')
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set())
-  const [categoryFilter, setCategoryFilter] = useState('todos')
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [events, setEvents] = useState<any[]>([])
   const [favorites, setFavorites] = useState<Set<number>>(new Set())
@@ -103,11 +103,11 @@ export default function Inicio() {
     setSearch('')
     setActiveFilter('populares')
     setSelectedTypes(new Set())
-    setCategoryFilter('todos')
+    setSelectedCategories(new Set())
   }
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
-  const hasActiveFilters = search || activeFilter !== 'populares' || selectedTypes.size > 0 || categoryFilter !== 'todos'
+  const hasActiveFilters = search || activeFilter !== 'populares' || selectedTypes.size > 0 || selectedCategories.size > 0
 
   const getFilteredEvents = () => {
     let result = allEvents
@@ -118,8 +118,8 @@ export default function Inicio() {
     } else if (activeFilter === 'mañana') {
       result = mananaEvents
     }
-    if (categoryFilter !== 'todos') {
-      result = result.filter((e) => e.cat.toLowerCase() === categoryFilter.toLowerCase())
+    if (selectedCategories.size > 0) {
+      result = result.filter((e) => selectedCategories.has(e.cat))
     }
     if (selectedTypes.size > 0) {
       result = result.filter((e) => selectedTypes.has(e.type))
@@ -228,9 +228,13 @@ export default function Inicio() {
 
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
         {eventCategories.map((cat) => (
-          <button key={cat} type="button" onClick={() => setCategoryFilter(cat)}
+          <button key={cat} type="button" onClick={() => setSelectedCategories(prev => {
+            const n = new Set(prev)
+            if (n.has(cat)) n.delete(cat); else n.add(cat)
+            return n
+          })}
             className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-              categoryFilter === cat
+              selectedCategories.has(cat)
                 ? 'bg-indigo-100 text-indigo-700'
                 : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
             }`}>
