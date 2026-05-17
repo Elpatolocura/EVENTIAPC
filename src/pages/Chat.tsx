@@ -34,7 +34,7 @@ export default function Chat() {
   const [reportMessage, setReportMessage] = useState('')
   const [menuMsgId, setMenuMsgId] = useState<number | null>(null)
   const [replyingTo, setReplyingTo] = useState<{ id: number; text: string } | null>(null)
-  const [msgs, setMsgs] = useState<{ id: number; from: string; text: string; time: string; replyTo?: { id: number; text: string }; media?: { url: string; type: string } }[]>([])
+  const [msgs, setMsgs] = useState<{ id: number; from: string; text: string; time: string; senderName: string; senderAvatar: string | null; replyTo?: { id: number; text: string }; media?: { url: string; type: string } }[]>([])
   const [fullscreenMedia, setFullscreenMedia] = useState<{ url: string; type: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; action: 'me' | 'all' } | null>(null)
   const [attendeeCount, setAttendeeCount] = useState(0)
