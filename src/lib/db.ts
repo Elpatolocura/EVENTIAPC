@@ -263,6 +263,48 @@ export async function getHiddenMessageIds(userId: string) {
   } catch { return new Set<number>() }
 }
 
+export async function getUnreadChatCounts(userId: string): Promise<Record<string, number>> {
+  try {
+    const { data } = await supabase.rpc('get_unread_chat_counts', { p_user_id: userId })
+    if (!data) return {}
+    const map: Record<string, number> = {}
+    data.forEach((r: any) => { map[r.event_id] = r.unread_count })
+    return map
+  } catch { return {} }
+}
+
+export async function markChatRead(userId: string, eventId: string) {
+  try {
+    await supabase.rpc('mark_chat_read', { p_user_id: userId, p_event_id: eventId })
+  } catch {}
+}
+
+export async function toggleChatPin(userId: string, eventId: string, pinned: boolean) {
+  try {
+    await supabase.rpc('toggle_chat_pin', { p_user_id: userId, p_event_id: eventId, p_pinned: pinned })
+  } catch {}
+}
+
+export async function getPinnedChats(userId: string): Promise<Set<string>> {
+  try {
+    const { data } = await supabase.rpc('get_pinned_chats', { p_user_id: userId })
+    return new Set((data || []).map((r: any) => r.event_id))
+  } catch { return new Set() }
+}
+
+export async function toggleChatMute(userId: string, eventId: string, muted: boolean) {
+  try {
+    await supabase.rpc('toggle_chat_mute', { p_user_id: userId, p_event_id: eventId, p_muted: muted })
+  } catch {}
+}
+
+export async function getMutedChats(userId: string): Promise<Set<string>> {
+  try {
+    const { data } = await supabase.rpc('get_muted_chats', { p_user_id: userId })
+    return new Set((data || []).map((r: any) => r.event_id))
+  } catch { return new Set() }
+}
+
 export async function getTodayMessagesCount(userId: string) {
   try {
     const today = new Date()
@@ -329,6 +371,40 @@ export async function markExpiredTickets(userId: string) {
     }
     if (expiredIds.length > 0) {
       await supabase.from('tickets').update({ status: 'usada' }).in('id', expiredIds)
+    }
+  } catch { /* fallback silencioso */ }
+}
+
+export async function releaseLockedFunds() {
+  try {
+    const { data: tickets } = await supabase
+      .from('tickets')
+      .select('total, events!inner(organizer_id, date)')
+      .eq('status', 'válida')
+    if (!tickets || tickets.length === 0) return
+    const months: Record<string, number> = { ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11 }
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const toRelease: Record<string, number> = {}
+    for (const t of tickets) {
+      const ev = t.events as any
+      if (!ev.date) continue
+      const m = (ev.date as string).match(/^(\d+)\s+(\w+)\s+(\d+)$/)
+      if (m) {
+        const eventDate = new Date(parseInt(m[3]), months[m[2].toLowerCase()], parseInt(m[1]))
+        if (eventDate < today) {
+          const orgId = ev.organizer_id
+          toRelease[orgId] = (toRelease[orgId] || 0) + (t.total || 0)
+        }
+      }
+    }
+    for (const [orgId, amount] of Object.entries(toRelease)) {
+      const { data: bal } = await supabase.from('balances').select('amount, locked').eq('user_id', orgId).maybeSingle()
+      if (bal) {
+        const newLocked = Math.max(0, (bal.locked || 0) - amount)
+        const newAmount = (bal.amount || 0) + amount
+        await supabase.from('balances').upsert({ user_id: orgId, amount: newAmount, locked: newLocked }, { onConflict: 'user_id' })
+      }
     }
   } catch { /* fallback silencioso */ }
 }

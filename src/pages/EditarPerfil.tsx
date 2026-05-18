@@ -10,9 +10,26 @@ const categories = [
   'Gastronomía', 'Negocios', 'Moda', 'Cine',
 ]
 
+function playLockedSound() {
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = audioCtx.createOscillator()
+    const gain = audioCtx.createGain()
+    osc.type = 'square'
+    osc.connect(gain)
+    gain.connect(audioCtx.destination)
+    osc.frequency.setValueAtTime(300, audioCtx.currentTime)
+    osc.frequency.setValueAtTime(200, audioCtx.currentTime + 0.15)
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3)
+    osc.start(audioCtx.currentTime)
+    osc.stop(audioCtx.currentTime + 0.3)
+  } catch { /* ignore */ }
+}
+
 export default function EditarPerfil() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, isPremium } = useAuth()
   const { t } = useLanguage()
   const [form, setForm] = useState({
     nombre: '', celular: '', ubicacion: '', biografia: '', categorias: [] as string[],
@@ -22,6 +39,7 @@ export default function EditarPerfil() {
   const [locating, setLocating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [premiumAlert, setPremiumAlert] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -51,6 +69,12 @@ export default function EditarPerfil() {
     }))
 
   const improveBio = async () => {
+    if (!isPremium) {
+      playLockedSound()
+      setPremiumAlert(true)
+      setTimeout(() => setPremiumAlert(false), 3500)
+      return
+    }
     setImproving(true)
     try {
       const result = await improveWithAI(
@@ -96,6 +120,22 @@ export default function EditarPerfil() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      {premiumAlert && (
+        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 animate-fade-in">
+          <span className="text-lg">🔒</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-800">Función exclusiva Premium</p>
+            <p className="text-xs text-amber-700 mt-0.5">Actualiza tu plan para usar la mejora con IA.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/perfil')}
+            className="shrink-0 px-4 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold rounded-lg hover:shadow-md transition-all cursor-pointer"
+          >
+            Mejorar plan
+          </button>
+        </div>
+      )}
       <div className="flex items-center gap-4 mb-6">
         <button
           type="button"
@@ -213,7 +253,7 @@ export default function EditarPerfil() {
                 </>
               ) : (
                 <>
-                  <span>✨</span>
+                  <span>{isPremium ? '✨' : '🔒'}</span>
                   {t('editar_perfil.mejorar_ia')}
                 </>
               )}

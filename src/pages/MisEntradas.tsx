@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { getTickets, markExpiredTickets } from '../lib/db'
+import { getTickets, markExpiredTickets, releaseLockedFunds } from '../lib/db'
+import { supabase } from '../lib/supabase'
 import { useLanguage } from '../context/LanguageContext'
 
 const statusColors: Record<string, string> = {
@@ -15,21 +16,23 @@ export default function MisEntradas() {
   const [tickets, setTickets] = useState<any[]>([])
   const [filter, setFilter] = useState<'todas' | 'válida' | 'usada' | 'cancelada'>('todas')
   const [detailTicket, setDetailTicket] = useState<any>(null)
+  const [cancelling, setCancelling] = useState<number | null>(null)
+  const [confirmCancel, setConfirmCancel] = useState<any>(null)
 
   useEffect(() => {
     if (user) {
-      markExpiredTickets(user.id).then(() => getTickets(user.id).then(setTickets))
+      markExpiredTickets(user.id).then(() => releaseLockedFunds().then(() => getTickets(user.id).then(setTickets)))
     }
   }, [user])
 
   const filtered = filter === 'todas' ? tickets : tickets.filter((t) => t.status === filter)
   const grouped = Object.values(
     filtered.reduce((acc: any, t: any) => {
-      const id = t.event_id
-      if (!acc[id]) acc[id] = { ...t }
+      const key = `${t.event_id}_${t.status}`
+      if (!acc[key]) acc[key] = { ...t }
       else {
-        acc[id].qty = (acc[id].qty || 1) + (t.qty || 1)
-        acc[id].total = (acc[id].total || 0) + (t.total || 0)
+        acc[key].qty = (acc[key].qty || 1) + (t.qty || 1)
+        acc[key].total = (acc[key].total || 0) + (t.total || 0)
       }
       return acc
     }, {})
@@ -93,7 +96,15 @@ export default function MisEntradas() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                    <p className="text-sm font-semibold text-gray-900">${ticket.total || 0}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-gray-900">${ticket.total || 0}</p>
+                      {ticket.status === 'válida' && (
+                        <button type="button" onClick={() => setConfirmCancel(ticket)}
+                          className="text-xs font-medium text-red-500 hover:text-red-600 transition-colors cursor-pointer">
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
                     <button type="button" onClick={() => setDetailTicket(ticket)}
                       className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer">{t('mis_entradas.ver_detalle')}</button>
                   </div>
@@ -101,6 +112,49 @@ export default function MisEntradas() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {confirmCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setConfirmCancel(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+            <span className="text-4xl block mb-3 text-center">⚠️</span>
+            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">¿Cancelar entrada?</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">Se cancelará la entrada y se te devolverá el <strong>90%</strong> del valor (10% de comisión).</p>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setConfirmCancel(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+                Volver
+              </button>
+              <button type="button" onClick={async () => {
+                if (!user || !confirmCancel) return
+                setCancelling(confirmCancel.id)
+                const ev = confirmCancel.events || {}
+                const priceNum = confirmCancel.total || 0
+                const refundAmount = Math.round(priceNum * 0.9)
+                const fee = priceNum - refundAmount
+                await supabase.from('tickets').update({ status: 'cancelada' }).eq('id', confirmCancel.id)
+                const { data: cur } = await supabase.from('balances').select('amount').eq('user_id', user.id).maybeSingle()
+                await supabase.from('balances').upsert({ user_id: user.id, amount: (cur?.amount || 0) + refundAmount }, { onConflict: 'user_id' })
+                await supabase.from('transactions').insert({
+                  user_id: user.id, amount: refundAmount, type: 'Devolución parcial',
+                  description: `Cancelación de entrada para ${ev.title || 'evento'} (comisión $${fee})`,
+                })
+                if (confirmCancel.events?.organizer_id) {
+                  const { data: orgBal } = await supabase.from('balances').select('locked').eq('user_id', confirmCancel.events.organizer_id).maybeSingle()
+                  const newOrgLocked = Math.max(0, (orgBal?.locked || 0) - priceNum)
+                  await supabase.from('balances').upsert({ user_id: confirmCancel.events.organizer_id, locked: newOrgLocked }, { onConflict: 'user_id' })
+                }
+                setCancelling(null)
+                setConfirmCancel(null)
+                getTickets(user.id).then(setTickets)
+              }}
+                disabled={cancelling === confirmCancel.id}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors cursor-pointer">
+                {cancelling === confirmCancel.id ? 'Cancelando...' : 'Sí, cancelar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

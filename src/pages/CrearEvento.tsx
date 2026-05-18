@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { createEvent, updateEvent, getEventById, getUserCategories, addUserCategory } from '../lib/db'
 import { improveWithAI } from '../lib/ai'
+import { getCurrency } from '../lib/price'
 
 const predefinedCategories = [
   'Música', 'Deportes', 'Tecnología', 'Arte',
@@ -47,6 +48,7 @@ export default function CrearEvento() {
   const [publishError, setPublishError] = useState('')
   const [publishedId, setPublishedId] = useState<string | null>(null)
   const [loadingEvent, setLoadingEvent] = useState(false)
+  const [currency, setCurrency] = useState<'COP' | 'USD'>('COP')
   const [form, setForm] = useState({
     titulo: '',
     descripcion: '',
@@ -81,7 +83,7 @@ export default function CrearEvento() {
           categoria: ev.category || '',
           ciudad: ev.city || '',
           direccion: ev.address || '',
-          precio: typeof ev.price === 'string' ? ev.price.replace(/^[$]/, '') : '',
+          precio: typeof ev.price === 'string' ? ev.price.replace(/^(USD\s*|\$)/, '').trim() : '',
           aforo: ev.capacity || '',
           fecha: ev.date || '',
           hora: ev.hour || '',
@@ -93,6 +95,7 @@ export default function CrearEvento() {
           accesibilidad: !!ev.accessibility,
           mascotas: !!ev.pets,
         })
+        setCurrency(getCurrency(ev.price))
         if (Array.isArray(ev.photos) && ev.photos.length > 0) {
           setPhotos(ev.photos.map((url: string, i: number) => ({ id: i + 1, url })))
         }
@@ -151,7 +154,8 @@ export default function CrearEvento() {
 
   const buildEventData = (status: string) => {
     const photoUrls = photos.filter((p) => p.url).map((p) => p.url!)
-    const priceValue = form.precio ? `$${form.precio.replace(/^[$]/, '')}` : 'Gratis'
+    const raw = form.precio.replace(/^(USD\s*|\$)/, '').trim()
+    const priceValue = form.precio ? (currency === 'USD' ? `USD ${raw}` : `$${raw}`) : 'Gratis'
     return {
       organizer_id: user!.id,
       title: form.titulo || 'Evento sin título',
@@ -316,7 +320,7 @@ export default function CrearEvento() {
           )}
           <div className="flex items-center justify-between pt-2 border-t border-gray-100">
             {form.precio ? (
-              <span className="text-sm font-bold text-gray-900">${form.precio}</span>
+              <span className="text-sm font-bold text-gray-900">{currency === 'USD' ? `USD ${form.precio}` : `$${form.precio}`}</span>
             ) : (
               <span className="text-xs text-gray-400">Precio no definido</span>
             )}
@@ -626,15 +630,27 @@ export default function CrearEvento() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Precio <span className="text-red-400">*</span></label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-sm text-gray-400">$</span>
-                  <input
-                    type="text"
-                    value={form.precio}
-                    onChange={(e) => update('precio', e.target.value)}
-                    placeholder="0 (dejar vacío = Gratis)"
-                    className="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-sm text-gray-400">{currency === 'COP' ? '$' : 'USD'}</span>
+                    <input
+                      type="text"
+                      value={form.precio}
+                      onChange={(e) => update('precio', e.target.value)}
+                      placeholder="0 (dejar vacío = Gratis)"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div className="flex rounded-xl border border-gray-200 overflow-hidden shrink-0">
+                    <button type="button" onClick={() => setCurrency('COP')}
+                      className={`px-3 py-3 text-xs font-semibold transition-colors cursor-pointer ${currency === 'COP' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                      COL$
+                    </button>
+                    <button type="button" onClick={() => setCurrency('USD')}
+                      className={`px-3 py-3 text-xs font-semibold transition-colors cursor-pointer ${currency === 'USD' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                      USD
+                    </button>
+                  </div>
                 </div>
                 {!form.precio && (
                   <p className="text-xs text-green-600 mt-1">Este evento será gratuito</p>
@@ -797,7 +813,7 @@ export default function CrearEvento() {
                   <span className="text-lg">🎟️</span>
                   <div>
                     <p className="text-xs text-gray-400">Precio / Aforo</p>
-                    <p className="text-sm font-medium text-gray-900">{form.precio ? `$${form.precio}` : 'Gratis'}{form.aforo ? ` • ${form.aforo} personas` : ''}</p>
+                    <p className="text-sm font-medium text-gray-900">{form.precio ? (currency === 'USD' ? `USD ${form.precio}` : `$${form.precio}`) : 'Gratis'}{form.aforo ? ` • ${form.aforo} personas` : ''}</p>
                   </div>
                 </div>
                 {form.descripcion && (
@@ -882,7 +898,7 @@ export default function CrearEvento() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => navigate('/inicio')}
+                onClick={() => navigate('/')}
                       className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       Cancelar
@@ -923,17 +939,10 @@ export default function CrearEvento() {
             <div className="flex flex-col gap-3">
               <button
                 type="button"
-                onClick={() => navigate(`/evento/${publishedId}`)}
+                onClick={() => navigate('/')}
                 className="w-full px-4 py-2.5 rounded-xl bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 transition-colors cursor-pointer"
               >
-                Ver evento
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/inicio')}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                Finalizar
+                Ir al inicio
               </button>
             </div>
           </div>

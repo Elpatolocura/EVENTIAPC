@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { getFavorites } from '../lib/db'
 import { supabase } from '../lib/supabase'
 import { useLanguage } from '../context/LanguageContext'
+import { formatPrice } from '../lib/price'
 
 export default function Favoritos() {
   const { t } = useLanguage()
@@ -69,7 +70,7 @@ export default function Favoritos() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                    <p className="text-sm font-semibold text-gray-900">{ev.price || 'Gratis'}</p>
+                    <p className="text-sm font-semibold text-gray-900">{formatPrice(ev.price)}</p>
                     <span className="text-xs font-medium text-indigo-600 group-hover:text-indigo-700 transition-colors">{t('favoritos.comprar')}</span>
                   </div>
                 </div>

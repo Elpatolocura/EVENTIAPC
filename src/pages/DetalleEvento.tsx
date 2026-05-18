@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getBalance, getEventById, getReviews, createReview, getTickets, getProfile } from '../lib/db'
+import { formatPrice, parsePrice } from '../lib/price'
 import { supabase } from '../lib/supabase'
 
 export default function DetalleEvento() {
@@ -105,7 +106,7 @@ export default function DetalleEvento() {
     ? dbPhotos
     : Array.from({ length: 5 }, (_, i) => `https://picsum.photos/seed/${event?.id || id}-${i}/800/400`)
 
-  const priceNum = event ? Number(String(event.price || '').replace(/[^0-9]/g, '')) : 0
+  const priceNum = event ? parsePrice(event.price) : 0
   const canUseBalance = balance >= priceNum
 
   useEffect(() => {
@@ -128,6 +129,15 @@ export default function DetalleEvento() {
           const newAmount = (current?.amount || 0) - priceNum
           await supabase.from('balances').upsert({ user_id: user.id, amount: newAmount }, { onConflict: 'user_id' })
           setBalance(newAmount)
+          const { data: orgBalance } = await supabase.from('balances').select('amount, locked').eq('user_id', event.organizer_id).maybeSingle()
+          const newLocked = (orgBalance?.locked || 0) + priceNum
+          await supabase.from('balances').upsert({ user_id: event.organizer_id, locked: newLocked }, { onConflict: 'user_id' })
+          await supabase.from('transactions').insert({
+            user_id: event.organizer_id,
+            amount: priceNum,
+            type: 'Venta de entrada',
+            description: `Venta de entrada para ${event.title || 'evento'} - ${user.email || 'comprador'}`,
+          })
         }
         setPaymentStep('success')
       }, 2000)
@@ -406,11 +416,11 @@ export default function DetalleEvento() {
 
       <div className="fixed bottom-0 left-64 right-0 z-40 bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div>
-          <p className="text-2xl font-bold text-gray-900">{event.price}</p>
+          <p className="text-2xl font-bold text-gray-900">{formatPrice(event.price)}</p>
           <p className="text-xs text-gray-500">{t('evento.por_persona')}</p>
         </div>
         <div className="flex items-center gap-2">
-          {hasTicket && (
+          {(hasTicket || user?.id === event.organizer_id) && (
             <Link to={`/chat/${event.id}`}
               className="px-4 py-3 rounded-xl bg-gray-100 text-sm font-medium text-gray-700 hover:bg-gray-200 cursor-pointer flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
@@ -435,7 +445,7 @@ export default function DetalleEvento() {
                 <span className="text-4xl block mb-3">✅</span>
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('pago.exitoso')}</h3>
                 <p className="text-sm text-gray-500 mb-1">{t('pago.adquiriste')} <strong>{event.title}</strong></p>
-                <p className="text-sm text-gray-500 mb-6">{t('pago.por')} {event.price}</p>
+                <p className="text-sm text-gray-500 mb-6">{t('pago.por')} {formatPrice(event.price)}</p>
                 <Link to="/mis-entradas" className="inline-block px-6 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">{t('pago.ver_entradas')}</Link>
               </div>
             ) : paymentStep === 'processing' ? (
@@ -451,7 +461,7 @@ export default function DetalleEvento() {
               <>
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="text-lg font-semibold text-gray-900">{t('pago.metodo')}</h3>
-                  <span className="px-3 py-1 rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">{event.price}</span>
+                  <span className="px-3 py-1 rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">{formatPrice(event.price)}</span>
                 </div>
                 <button type="button" onClick={() => setPaymentStep('processing')} disabled={!canUseBalance}
                   className="w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer mb-4 border-indigo-500 bg-indigo-50/50">

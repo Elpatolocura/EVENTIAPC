@@ -4,8 +4,9 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getAllEvents } from '../lib/db'
 import { chatWithAI } from '../lib/ai'
+import { formatPrice } from '../lib/price'
 
-const STORAGE_KEY = 'yulianis_chat'
+const STORAGE_KEY = (uid?: string | null) => `yulianis_chat_${uid || 'anonymous'}`
 const INACTIVITY_MS = 120000
 
 function renderContent(text: string, navigate: ReturnType<typeof useNavigate>, onBuyTicket?: (eventId: string, title: string) => void) {
@@ -28,7 +29,7 @@ function renderContent(text: string, navigate: ReturnType<typeof useNavigate>, o
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500 mb-2">
             {date && <span>📅 {date}</span>}
             {city && <span>📍 {city}</span>}
-            {price && <span>💰 {price}</span>}
+            {price && <span>💰 {formatPrice(price)}</span>}
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={() => navigate(`/evento/${eventId}`)}
@@ -55,9 +56,9 @@ function renderContent(text: string, navigate: ReturnType<typeof useNavigate>, o
   })
 }
 
-function loadMessages() {
+function loadMessages(uid?: string | null) {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = localStorage.getItem(STORAGE_KEY(uid))
     if (stored) return JSON.parse(stored)
   } catch { /* ignore */ }
   return [
@@ -67,8 +68,8 @@ function loadMessages() {
 
 export default function ChatIA() {
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const [messages, setMessages] = useState<any[]>(loadMessages)
+  const { user, isPremium } = useAuth()
+  const [messages, setMessages] = useState<any[]>(() => loadMessages(user?.id))
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [eventsContext, setEventsContext] = useState('')
@@ -94,9 +95,13 @@ export default function ChatIA() {
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+    localStorage.setItem(STORAGE_KEY(user?.id), JSON.stringify(messages))
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, user?.id])
+
+  useEffect(() => {
+    setMessages(loadMessages(user?.id))
+  }, [user?.id])
 
   useEffect(() => {
     inactivityTimer.current = setInterval(() => {
@@ -198,6 +203,34 @@ Instrucciones importantes:
         content: `✅ ¡Entrada${buyQty > 1 ? 's' : ''} comprada${buyQty > 1 ? 's' : ''} para ${buyModal.title}! Puedes ver tus entradas en Mis Entradas.`
       }])
     }
+  }
+
+  if (!isPremium) {
+    return (
+      <div className="max-w-4xl mx-auto h-[calc(100vh-4rem)] flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-pink-500 to-rose-500 text-white flex items-center gap-3">
+          <span className="text-3xl">✨</span>
+          <div>
+            <h1 className="font-bold text-lg">YULIANIS</h1>
+            <p className="text-xs text-pink-100 font-medium">IA Premium</p>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center max-w-md">
+            <span className="text-5xl block mb-4">💎</span>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">YULIANIS es exclusiva para usuarios Premium</h2>
+            <p className="text-gray-500 mb-6 text-sm">Actualiza tu plan para acceder a la asistente de IA, compra de entradas automatizada y recomendaciones inteligentes.</p>
+            <button
+              type="button"
+              onClick={() => navigate('/perfil')}
+              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-pink-500/25 transition-all cursor-pointer"
+            >
+              Ir a Premium
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

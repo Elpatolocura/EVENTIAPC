@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 interface ToastProps {
@@ -11,27 +11,15 @@ interface ToastProps {
 
 export default function ToastNotificacion({ id, title, message, data, onClose }: ToastProps) {
   const navigate = useNavigate()
-  const duration = 30
-  const [remaining, setRemaining] = useState(duration)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
-  const startRef = useRef(Date.now())
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
-    startRef.current = Date.now()
-    intervalRef.current = setInterval(() => {
-      const elapsed = (Date.now() - startRef.current) / 1000
-      const left = Math.max(0, duration - elapsed)
-      setRemaining(left)
-      if (left <= 0) {
-        clearInterval(intervalRef.current)
-        onClose(id)
-      }
-    }, 50)
-    return () => clearInterval(intervalRef.current)
+    timerRef.current = setTimeout(() => onClose(id), 5000)
+    return () => clearTimeout(timerRef.current)
   }, [id, onClose])
 
-  const handleVerMas = () => {
-    clearInterval(intervalRef.current)
+  const handleClick = () => {
+    clearTimeout(timerRef.current)
     onClose(id)
     if (data?.type === 'new_follower' && data.actor_id) {
       navigate(`/perfil/${data.actor_id}`)
@@ -44,32 +32,25 @@ export default function ToastNotificacion({ id, title, message, data, onClose }:
     }
   }
 
-  const progress = (remaining / duration) * 100
-
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-slide-up">
-      <div className="px-4 py-3 max-w-sm">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">{title}</p>
-            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{message}</p>
-          </div>
-          <button type="button" onClick={() => onClose(id)}
-            className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <div
+      onClick={handleClick}
+      className="bg-indigo-600 text-white rounded-xl shadow-2xl border border-indigo-400 px-5 py-4 max-w-sm cursor-pointer animate-slide-up hover:bg-indigo-700 transition-colors"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold truncate">{title}</p>
+          <p className="text-xs text-indigo-100 mt-1 line-clamp-2">{message}</p>
         </div>
-        <div className="flex gap-2 mt-2">
-          <button type="button" onClick={handleVerMas}
-            className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer">
-            Ver más
-          </button>
-        </div>
-      </div>
-      <div className="h-1 bg-gray-100">
-        <div className="h-full bg-indigo-500 transition-all duration-[50ms] ease-linear" style={{ width: `${progress}%` }} />
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); clearTimeout(timerRef.current); onClose(id) }}
+          className="shrink-0 text-indigo-200 hover:text-white transition-colors cursor-pointer"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
     </div>
   )

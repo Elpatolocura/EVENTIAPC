@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
-import { getChatMessages, sendChatMessage, deleteChatMessage, hideMessageForUser, getHiddenMessageIds, getTodayMessagesCount } from '../lib/db'
+import { getChatMessages, sendChatMessage, deleteChatMessage, hideMessageForUser, getHiddenMessageIds, getTodayMessagesCount, getUnreadChatCounts, markChatRead, toggleChatMute, getMutedChats, toggleChatPin, getPinnedChats } from '../lib/db'
 import { supabase } from '../lib/supabase'
 
 const emojis = ['😀','😎','🔥','❤️','🎉','👍','😢','😂','😍','🎶','💪','🙌','✨','🥳','💯','👏','😅','🤔','🎸','🍕','🎭','📸','🎤','💃','🕺','🌮','🍷','🎪','🤩','💫']
@@ -46,47 +46,75 @@ export default function Chat() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [dailyCount, setDailyCount] = useState(0)
   const [limitMsg, setLimitMsg] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
+  const [toastMsg, setToastMsg] = useState('')
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>()
+  const [mutedChats, setMutedChats] = useState<Set<string>>(new Set())
+  const [pinnedChats, setPinnedChats] = useState<Set<string>>(new Set())
+  const mutedRef = useRef(new Set<string>())
+  const pinnedRef = useRef(new Set<string>())
   const msgRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
   const messagesContainerRef = useRef<HTMLDivElement | null>(null)
+  const chatIdsRef = useRef<string[]>([])
 
-  const selected = chatList.find((c: any) => c.id === selectedId)
+  const filteredChatList = searchQuery
+    ? chatList.filter((c: any) => c.event.toLowerCase().includes(searchQuery.toLowerCase()))
+    : chatList
+  const selected = filteredChatList.find((c: any) => c.id === selectedId)
 
   useEffect(() => {
     if (!user) return
     if (!isPremium) getTodayMessagesCount(user.id).then(setDailyCount)
-    supabase.from('tickets').select('*, events(*)').eq('user_id', user.id).then(async ({ data: tickets }) => {
+    getMutedChats(user.id).then(s => { mutedRef.current = s; setMutedChats(s) })
+    getPinnedChats(user.id).then(s => { pinnedRef.current = s; setPinnedChats(s) })
+    Promise.all([
+      supabase.from('tickets').select('*, events(*)').eq('user_id', user.id),
+      supabase.from('events').select('*').eq('organizer_id', user.id),
+    ]).then(async ([{ data: tickets }, { data: ownEvents }]) => {
+      const seen = new Set<string>()
+      const allEvents: any[] = []
       if (tickets && tickets.length > 0) {
-        const seen = new Set<string>()
-        const uniqueEvents = tickets.reduce((acc: any[], t: any) => {
+        tickets.forEach((t: any) => {
           if (!seen.has(t.event_id)) {
             seen.add(t.event_id)
-            acc.push(t)
+            allEvents.push({ event_id: t.event_id, events: t.events, created_at: t.created_at })
           }
-          return acc
-        }, [])
+        })
+      }
+      if (ownEvents && ownEvents.length > 0) {
+        ownEvents.forEach((e: any) => {
+          if (!seen.has(e.id)) {
+            seen.add(e.id)
+            allEvents.push({ event_id: e.id, events: e, created_at: e.created_at })
+          }
+        })
+      }
+      if (allEvents.length > 0) {
         const lastMsgs = await Promise.all(
-          uniqueEvents.map((t: any) =>
+          allEvents.map((item: any) =>
             supabase.from('chat_messages').select('text, created_at')
-              .eq('event_id', t.event_id)
+              .eq('event_id', item.event_id)
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle()
               .then(({ data }) => data)
           )
         )
-        const eventChats = uniqueEvents.map((t: any, i: number) => ({
-          id: t.event_id,
-          event: t.events?.title || 'Evento',
-          cover: t.events?.photos?.[0] || null,
+        const eventChats = allEvents.map((item: any, i: number) => ({
+          id: item.event_id,
+          event: item.events?.title || 'Evento',
+          cover: item.events?.photos?.[0] || null,
           lastMsg: lastMsgs[i]?.text || 'Conversación del evento',
           time: lastMsgs[i]?.created_at
             ? new Date(lastMsgs[i].created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
-            : new Date(t.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }),
+            : new Date(item.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }),
           unread: 0,
           online: false,
           messages: [],
         }))
+        chatIdsRef.current = eventChats.map((c: any) => c.id)
         setChatList(eventChats)
       } else {
         setChatList([])
@@ -101,7 +129,94 @@ export default function Chat() {
   }, [eventId, chatList])
 
   useEffect(() => {
+    if (!user) return
+    let mounted = true
+    const refresh = async () => {
+      const ids = chatIdsRef.current
+      if (ids.length === 0) return
+      const [unread, lastMsgs] = await Promise.all([
+        getUnreadChatCounts(user.id),
+        Promise.all(
+          ids.map((id: string) =>
+            supabase.from('chat_messages').select('text, created_at')
+              .eq('event_id', id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+              .then(({ data }) => data)
+          )
+        ),
+      ])
+      if (!mounted) return
+      if (unread) setUnreadCounts(unread)
+      setChatList(prev => {
+        const updated = prev.map((c: any) => {
+          const idx = ids.indexOf(c.id)
+          return {
+            ...c,
+            lastMsg: lastMsgs[idx]?.text || c.lastMsg,
+            time: lastMsgs[idx]?.created_at
+              ? new Date(lastMsgs[idx].created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+              : c.time,
+          }
+        })
+        const msgTimes = lastMsgs.map((m: any) => m?.created_at || 0)
+        updated.sort((a: any, b: any) => {
+          const aPinned = pinnedRef.current.has(a.id)
+          const bPinned = pinnedRef.current.has(b.id)
+          if (aPinned && !bPinned) return -1
+          if (!aPinned && bPinned) return 1
+          const aTime = msgTimes[ids.indexOf(a.id)]
+          const bTime = msgTimes[ids.indexOf(b.id)]
+          return new Date(bTime).getTime() - new Date(aTime).getTime()
+        })
+        return updated
+      })
+    }
+    refresh()
+    const interval = setInterval(refresh, 5000)
+    const channel = supabase.channel('chat-messages-realtime')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
+        (payload: any) => {
+          const msg = payload.new
+          if (msg.user_id === user.id) return
+          setChatList(prev => {
+            const idx = prev.findIndex((c: any) => c.id === msg.event_id)
+            if (idx === -1) return prev
+            const chat = prev[idx]
+            const updated = {
+              ...chat,
+              lastMsg: msg.text,
+              time: new Date(msg.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }),
+            }
+            const next = [...prev]
+            next.splice(idx, 1)
+            next.unshift(updated)
+            return next
+          })
+          if (msg.event_id !== selectedId) {
+            setUnreadCounts(prev => ({
+              ...prev,
+              [msg.event_id]: (prev[msg.event_id] || 0) + 1
+            }))
+          }
+        }
+      )
+      .subscribe()
+    return () => {
+      mounted = false
+      clearInterval(interval)
+      supabase.removeChannel(channel)
+    }
+  }, [user, selectedId])
+
+  useEffect(() => {
     if (!selectedId || !user) return
+    markChatRead(user.id, selectedId)
+    setUnreadCounts(prev => ({ ...prev, [selectedId]: 0 }))
+    setNotifications(!mutedRef.current.has(selectedId))
+    setPinned(pinnedRef.current.has(selectedId))
     Promise.all([
       getChatMessages(selectedId),
       getHiddenMessageIds(user.id),
@@ -127,7 +242,7 @@ export default function Chat() {
       setMsgs(mapped)
     })
     setReplyingTo(null)
-  }, [selectedId, user?.id])
+  }, [selectedId, user?.id, mutedChats, pinnedChats])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -165,6 +280,20 @@ export default function Chat() {
     setNewMsg('')
     setReplyingTo(null)
     await sendChatMessage({ event_id: selectedId, user_id: user.id, text })
+    setChatList(prev => {
+      const idx = prev.findIndex((c: any) => c.id === selectedId)
+      if (idx === -1) return prev
+      const chat = prev[idx]
+      const updated = {
+        ...chat,
+        lastMsg: text,
+        time: new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }),
+      }
+      const next = [...prev]
+      next.splice(idx, 1)
+      next.unshift(updated)
+      return next
+    })
     if (!isPremium) setDailyCount(c => c + 1)
     const [messages, hiddenIds] = await Promise.all([
       getChatMessages(selectedId),
@@ -178,6 +307,12 @@ export default function Chat() {
       return { id: m.id, from: isMe ? 'me' : 'them', text: m.text, time, senderName: m.sender?.nombre || 'Usuario', senderAvatar: m.sender?.avatar_url || null }
     })
     setMsgs(mapped)
+  }
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg)
+    clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToastMsg(''), 2000)
   }
 
   const insertEmoji = (emoji: string) => {
@@ -200,23 +335,47 @@ export default function Chat() {
   return (
     <div className="h-[calc(100vh-4rem)] flex gap-0 -m-8">
       <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} bg-white border-r border-gray-200 flex flex-col shrink-0 transition-all duration-200`}>
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-2">
           {!sidebarCollapsed && (
-            <div>
+            <div className="flex-1 min-w-0">
               <h2 className="text-sm font-semibold text-gray-900">{t('chat.titulo')}</h2>
               <p className="text-xs text-gray-500 mt-0.5">{chatList.length} {t('chat.conversaciones')}</p>
             </div>
           )}
           <button type="button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer shrink-0">
             <svg className={`w-4 h-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
             </svg>
           </button>
         </div>
 
+        {!sidebarCollapsed && (
+          <div className="px-4 py-2 border-b border-gray-100">
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar conversación..."
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto">
-          {chatList.map((chat) => (
+          {filteredChatList.length === 0 && !sidebarCollapsed && (
+            <div className="p-4 text-center text-sm text-gray-400">
+              {searchQuery ? 'Sin resultados' : 'No hay conversaciones'}
+            </div>
+          )}
+          {filteredChatList.map((chat) => {
+            const unread = unreadCounts[chat.id] || 0
+            return (
             <button
               key={chat.id}
               type="button"
@@ -224,7 +383,9 @@ export default function Chat() {
               className={`w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors cursor-pointer border-b border-gray-50 ${
                 selectedId === chat.id
                   ? 'bg-indigo-50/70'
-                  : 'hover:bg-gray-50'
+                  : unread > 0
+                    ? 'bg-blue-50/60 hover:bg-blue-100/50'
+                    : 'hover:bg-gray-50'
               } ${sidebarCollapsed ? 'justify-center px-0' : ''}`}
             >
               <div className="relative shrink-0">
@@ -237,18 +398,35 @@ export default function Chat() {
                     {chat.event.charAt(0)}
                   </div>
                 )}
+                {unread > 0 && (
+                  <div className={`absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-red-500 text-white font-bold shadow-md ring-2 ring-white ${sidebarCollapsed ? 'w-4 h-4 text-[8px]' : 'min-w-[18px] h-[18px] text-[10px] px-1'}`}>
+                    {unread > (sidebarCollapsed ? 9 : 99) ? (sidebarCollapsed ? '9+' : '99+') : unread}
+                  </div>
+                )}
               </div>
               {!sidebarCollapsed && (
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-900 truncate">{chat.event}</p>
-                    <span className="text-[11px] text-gray-400 shrink-0">{chat.time}</span>
+                    <p className={`text-sm truncate ${unread > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-900'}`}>
+                      {pinnedRef.current.has(chat.id) && (
+                        <svg className="w-3.5 h-3.5 inline mr-1 -mt-0.5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+                        </svg>
+                      )}
+                      {chat.event}
+                    </p>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {unread > 0 && (
+                        <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                      )}
+                      <span className="text-[11px] text-gray-400">{chat.time}</span>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">{chat.lastMsg}</p>
+                  <p className={`text-xs truncate mt-0.5 ${unread > 0 ? 'font-semibold text-gray-700' : 'text-gray-500'}`}>{chat.lastMsg}</p>
                 </div>
               )}
             </button>
-          ))}
+          )})}
         </div>
       </div>
 
@@ -385,9 +563,53 @@ export default function Chat() {
                       </div>
 
                       <div className="p-4 space-y-3 border-b border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-700">Notificaciones</span>
+                          <button type="button" onClick={() => {
+                            const newVal = !notifications
+                            setNotifications(newVal)
+                            showToast(newVal ? 'Notificaciones activadas' : 'Notificaciones silenciadas')
+                            if (user && selectedId) {
+                              toggleChatMute(user.id, selectedId, !newVal)
+                              if (!newVal) {
+                                mutedRef.current = new Set(mutedRef.current).add(selectedId)
+                              } else {
+                                const next = new Set(mutedRef.current)
+                                next.delete(selectedId)
+                                mutedRef.current = next
+                              }
+                            }
+                          }}
+                            className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${notifications ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${notifications ? 'translate-x-4' : ''}`} />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-700">Fijar chat</span>
+                          <button type="button" onClick={() => {
+                            const newVal = !pinned
+                            if (newVal && pinnedRef.current.size >= 7) {
+                              showToast('Máximo 7 chats fijados')
+                              return
+                            }
+                            setPinned(newVal)
+                            showToast(newVal ? 'Chat fijado' : 'Chat desfijado')
+                            if (user && selectedId) {
+                              toggleChatPin(user.id, selectedId, newVal)
+                              if (newVal) {
+                                pinnedRef.current = new Set(pinnedRef.current).add(selectedId)
+                              } else {
+                                const next = new Set(pinnedRef.current)
+                                next.delete(selectedId)
+                                pinnedRef.current = next
+                              }
+                            }
+                          }}
+                            className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${pinned ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${pinned ? 'translate-x-4' : ''}`} />
+                          </button>
+                        </div>
                         {[
-                          { key: 'notifications', label: 'Notificaciones', value: notifications, set: setNotifications },
-                          { key: 'pinned', label: 'Fijar chat', value: pinned, set: setPinned },
                           { key: 'hidden', label: 'Ocultar chat', value: hidden, set: setHidden },
                           { key: 'persistent', label: 'Mensajes persistentes', value: persistent, set: setPersistent },
                         ].map((t) => (
@@ -855,6 +1077,12 @@ export default function Chat() {
           ) : (
             <img src={fullscreenMedia.url} alt="" className="max-w-full max-h-full object-contain" onClick={(e) => e.stopPropagation()} />
           )}
+        </div>
+      )}
+
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 bg-gray-900 text-white text-sm font-medium rounded-xl shadow-lg transition-all duration-300">
+          {toastMsg}
         </div>
       )}
     </div>

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getProfile, getAllEvents } from '../lib/db'
 import { supabase } from '../lib/supabase'
+import { formatPrice } from '../lib/price'
 
 export default function Inicio() {
   const { user } = useAuth()
@@ -354,7 +355,7 @@ export default function Inicio() {
                       {event.location}
                     </div>
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                      <p className="text-sm font-bold text-gray-900">{event.price}</p>
+                      <p className="text-sm font-bold text-gray-900">{formatPrice(event.price)}</p>
                       <div className="flex items-center gap-1 text-xs text-gray-500">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />

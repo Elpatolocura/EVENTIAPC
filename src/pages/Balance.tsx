@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { getBalance, getTransactions } from '../lib/db'
+import { getBalance, getTransactions, releaseLockedFunds } from '../lib/db'
 import { supabase } from '../lib/supabase'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -10,6 +10,7 @@ export default function Balance() {
   const { t } = useLanguage()
   const { user } = useAuth()
   const [balance, setBalance] = useState(0)
+  const [locked, setLocked] = useState(0)
   const [history, setHistory] = useState<{ amount: number; method: string; date: string }[]>([])
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
   const [customAmount, setCustomAmount] = useState('')
@@ -20,7 +21,12 @@ export default function Balance() {
 
   useEffect(() => {
     if (!user) return
-    getBalance(user.id).then((data) => setBalance(data?.amount || 0))
+    releaseLockedFunds().then(() => {
+      getBalance(user.id).then((data) => {
+        setBalance(data?.amount || 0)
+        setLocked(data?.locked || 0)
+      })
+    })
     getTransactions(user.id).then((tx) =>
       setHistory(tx.map((t: any) => ({ amount: t.amount, method: t.type, date: new Date(t.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) })))
     )
@@ -74,9 +80,16 @@ export default function Balance() {
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">{t('balance.titulo')}</h1>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{t('balance.disponible')}</p>
-        <p className="text-4xl font-bold text-gray-900">${balance.toLocaleString('es-CO')}</p>
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Disponible</p>
+          <p className="text-4xl font-bold text-gray-900">${balance.toLocaleString('es-CO')}</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Pendiente</p>
+          <p className="text-4xl font-bold text-amber-600">${locked.toLocaleString('es-CO')}</p>
+          <p className="text-[11px] text-gray-400 mt-1">Disponible tras finalizar el evento</p>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
