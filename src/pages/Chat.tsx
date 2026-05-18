@@ -49,7 +49,7 @@ export default function Chat() {
   const [searchQuery, setSearchQuery] = useState('')
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
   const [toastMsg, setToastMsg] = useState('')
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>()
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [mutedChats, setMutedChats] = useState<Set<string>>(new Set())
   const [pinnedChats, setPinnedChats] = useState<Set<string>>(new Set())
   const mutedRef = useRef(new Set<string>())
