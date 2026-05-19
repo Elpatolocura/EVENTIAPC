@@ -195,7 +195,23 @@ export default function Chat() {
             next.unshift(updated)
             return next
           })
-          if (msg.event_id !== selectedId) {
+          if (msg.event_id === selectedId) {
+            supabase.from('profiles').select('nombre, avatar_url').eq('id', msg.user_id).single()
+              .then(({ data: profile }) => {
+                const time = new Date(msg.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+                setMsgs(prev => {
+                  if (prev.some(m => m.id === msg.id)) return prev
+                  return [...prev, {
+                    id: msg.id,
+                    from: 'them',
+                    text: msg.text,
+                    time,
+                    senderName: profile?.nombre || 'Usuario',
+                    senderAvatar: profile?.avatar_url || null,
+                  }]
+                })
+              })
+          } else {
             setUnreadCounts(prev => ({
               ...prev,
               [msg.event_id]: (prev[msg.event_id] || 0) + 1

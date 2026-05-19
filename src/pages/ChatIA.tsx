@@ -68,7 +68,7 @@ function loadMessages(uid?: string | null) {
 
 export default function ChatIA() {
   const navigate = useNavigate()
-  const { user, isPremium } = useAuth()
+  const { user } = useAuth()
   const [messages, setMessages] = useState<any[]>(() => loadMessages(user?.id))
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -205,27 +205,27 @@ Instrucciones importantes:
     }
   }
 
-  if (!isPremium) {
+  if (!user) {
     return (
       <div className="max-w-4xl mx-auto h-[calc(100vh-4rem)] flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-pink-500 to-rose-500 text-white flex items-center gap-3">
           <span className="text-3xl">✨</span>
           <div>
             <h1 className="font-bold text-lg">YULIANIS</h1>
-            <p className="text-xs text-pink-100 font-medium">IA Premium</p>
+            <p className="text-xs text-pink-100 font-medium">Asistente IA</p>
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center max-w-md">
-            <span className="text-5xl block mb-4">💎</span>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">YULIANIS es exclusiva para usuarios Premium</h2>
-            <p className="text-gray-500 mb-6 text-sm">Actualiza tu plan para acceder a la asistente de IA, compra de entradas automatizada y recomendaciones inteligentes.</p>
+            <span className="text-5xl block mb-4">🔒</span>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Inicia sesión para usar YULIANIS</h2>
+            <p className="text-gray-500 mb-6 text-sm">YULIANIS es tu asistente inteligente de Eventia. Inicia sesión para hablar con ella.</p>
             <button
               type="button"
-              onClick={() => navigate('/perfil')}
+              onClick={() => navigate('/login')}
               className="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-pink-500/25 transition-all cursor-pointer"
             >
-              Ir a Premium
+              Iniciar sesión
             </button>
           </div>
         </div>
