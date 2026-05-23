@@ -2,7 +2,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
-import { getBalance, getEventById, getReviews, createReview, getTickets, getProfile } from '../lib/db'
+import { getBalance, getEventById, createReview, getProfile } from '../lib/db'
 import { formatPrice, parsePrice } from '../lib/price'
 import { supabase } from '../lib/supabase'
 import { PageSkeleton } from '../components/Skeletons'
@@ -42,8 +42,6 @@ export default function DetalleEvento() {
   const [reportSent, setReportSent] = useState(false)
   const [sendingReport, setSendingReport] = useState(false)
   const [isFav, setIsFav] = useState(false)
-  const [showMenu, setShowMenu] = useState(false)
-  const [showStickyMenu, setShowStickyMenu] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
   const [currentPhoto, setCurrentPhoto] = useState(0)
   const [scrolled, setScrolled] = useState(false)
@@ -52,30 +50,26 @@ export default function DetalleEvento() {
   const descMaxLen = 150
 
   useEffect(() => {
-    if (id) {
-      setLoading(true)
-      getEventById(id).then((ev) => { 
-        setEvent(normalizeEvent(ev)); 
-        if (ev?.organizer_id) {
-          getProfile(ev.organizer_id).then(setOrganizerProfile)
-        }
-        setLoading(false) 
-      })
-    }
-  }, [id])
-
-  useEffect(() => {
-    if (event?.id) {
-      getReviews(event.id).then(setReviews)
-      if (user) getTickets(user.id).then((tickets) => setHasTicket(tickets.some((t: any) => t.event_id === event.id)))
-    }
-  }, [event?.id, user])
-
-  useEffect(() => {
-    const onScroll = () => { setScrolled(window.scrollY > 300); setShowMenu(false); setShowStickyMenu(false) }
+    const onScroll = () => { setScrolled(window.scrollY > 300) }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+  useEffect(() => {
+    if (!id) return
+    getEventById(id).then((ev) => {
+      if (ev) {
+        setEvent(normalizeEvent(ev))
+        if (ev.organizer_id) getProfile(ev.organizer_id).then(setOrganizerProfile)
+      }
+      setLoading(false)
+    })
+  }, [id])
+  useEffect(() => {
+    if (!id || !user) return
+    supabase.from('tickets').select('id').eq('event_id', id).eq('user_id', user.id).maybeSingle().then(({ data }) => {
+      if (data) setHasTicket(true)
+    })
+  }, [id, user])
   useEffect(() => {
     if (!user || !event) return
     supabase.from('favorites').select('id').eq('user_id', user.id).eq('event_id', event.id).maybeSingle().then(({ data }) => {
