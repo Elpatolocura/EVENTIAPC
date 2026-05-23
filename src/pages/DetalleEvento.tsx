@@ -5,6 +5,8 @@ import { useLanguage } from '../context/LanguageContext'
 import { getBalance, getEventById, getReviews, createReview, getTickets, getProfile } from '../lib/db'
 import { formatPrice, parsePrice } from '../lib/price'
 import { supabase } from '../lib/supabase'
+import { PageSkeleton } from '../components/Skeletons'
+import LazyImage from '../components/LazyImage'
 
 export default function DetalleEvento() {
   const { id } = useParams()
@@ -46,6 +48,7 @@ export default function DetalleEvento() {
   const [currentPhoto, setCurrentPhoto] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   const [fullScreenCarousel, setFullScreenCarousel] = useState(false)
+  const [copied, setCopied] = useState(false)
   const descMaxLen = 150
 
   useEffect(() => {
@@ -88,6 +91,27 @@ export default function DetalleEvento() {
     } else {
       await supabase.from('favorites').insert({ user_id: user.id, event_id: event.id })
       setIsFav(true)
+    }
+  }
+
+  const handleShare = async () => {
+    const shareData = {
+      title: event?.title || 'Evento en Eventia',
+      text: `¡Mira este evento: ${event?.title}! 🎉`,
+      url: window.location.href,
+    }
+    // Web Share API — abre la hoja nativa del SO (iOS/Android)
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData)
+      } catch {
+        // El usuario canceló — no hacer nada
+      }
+    } else {
+      // Fallback para escritorio: copiar al portapapeles
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
   }
 
@@ -148,9 +172,8 @@ export default function DetalleEvento() {
   if (!event) {
     if (loading) {
       return (
-        <div className="max-w-2xl mx-auto text-center py-20">
-          <span className="text-5xl block mb-4">⏳</span>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Cargando evento...</h2>
+        <div className="pt-8">
+          <PageSkeleton />
         </div>
       )
     }
@@ -172,35 +195,27 @@ export default function DetalleEvento() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           {t('evento.volver')}
         </button>
-        <div className="relative">
-          <button type="button" onClick={() => setShowMenu(!showMenu)}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+        <div className="flex items-center gap-1">
+          {/* Botón compartir nativo */}
+          <button type="button" onClick={handleShare}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+            {copied ? (
+              <>
+                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                <span className="text-green-600">Copiado</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                <span>Compartir</span>
+              </>
+            )}
           </button>
-          {showMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-              <div className="absolute right-0 top-8 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
-                  <span className="text-lg">📘</span> {t('evento.facebook')}
-                </a>
-                <a href={`https://wa.me/?text=${encodeURIComponent(event.title + ' - ' + window.location.href)}`} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
-                  <span className="text-lg">💬</span> {t('evento.whatsapp')}
-                </a>
-                  <button type="button" onClick={() => { navigator.clipboard.writeText(window.location.href); setShowMenu(false) }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
-                  <span className="text-lg">🔗</span> {t('evento.copiar')}
-                </button>
-                <div className="border-t border-gray-100 my-1" />
-                <button type="button" onClick={() => { setShowReport(true); setShowMenu(false) }}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 cursor-pointer">
-                  <span className="text-lg">🚩</span> {t('evento.denunciar')}
-                </button>
-              </div>
-            </>
-          )}
+          {/* Botón denunciar */}
+          <button type="button" onClick={() => setShowReport(true)}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg>
+          </button>
         </div>
       </div>
 
@@ -218,36 +233,11 @@ export default function DetalleEvento() {
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer shrink-0 ${isFav ? 'text-amber-500' : 'text-gray-400 hover:text-amber-400'}`}>
               <svg className="w-5 h-5" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
             </button>
-            <div className="relative">
-              <button type="button" onClick={() => setShowStickyMenu(!showStickyMenu)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
-              </button>
-              {showStickyMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowStickyMenu(false)} />
-                  <div className="absolute right-0 top-8 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                    <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
-                      <span className="text-lg">📘</span> {t('evento.facebook')}
-                    </a>
-                    <a href={`https://wa.me/?text=${encodeURIComponent(event.title + ' - ' + window.location.href)}`} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
-                      <span className="text-lg">💬</span> {t('evento.whatsapp')}
-                    </a>
-                      <button type="button" onClick={() => { navigator.clipboard.writeText(window.location.href); setShowStickyMenu(false) }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
-                      <span className="text-lg">🔗</span> {t('evento.copiar')}
-                    </button>
-                    <div className="border-t border-gray-100 my-1" />
-                <button type="button" onClick={() => { setShowReport(true); setShowStickyMenu(false) }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 cursor-pointer">
-                      <span className="text-lg">🚩</span> {t('evento.denunciar')}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            {/* Botón compartir nativo en sticky header */}
+            <button type="button" onClick={handleShare}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -255,7 +245,9 @@ export default function DetalleEvento() {
       <div className="relative rounded-2xl overflow-hidden mb-6 h-56 sm:h-64 select-none">
         <div className="flex transition-transform duration-300 h-full" style={{ transform: `translateX(-${currentPhoto * 100}%)` }}>
           {photos.map((src, i) => (
-            <img key={i} src={src} alt={`Evento foto ${i + 1}`} onClick={() => setFullScreenCarousel(true)} className="min-w-full shrink-0 h-full object-cover cursor-pointer" />
+            <div key={i} className="min-w-full shrink-0 h-full cursor-pointer" onClick={() => setFullScreenCarousel(true)}>
+              <LazyImage src={src} alt={`Evento foto ${i + 1}`} fallbackGradient={event.cover} fallbackEmoji="🎉" />
+            </div>
           ))}
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />

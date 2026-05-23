@@ -183,6 +183,24 @@ export default function Perfil() {
         </div>
       </div>
 
+      {/* Menú rápido para móviles (ya que el Sidebar está oculto) */}
+      {isOwnProfile && (
+        <div className="mt-4 grid grid-cols-2 gap-3 md:hidden">
+          <button type="button" onClick={() => navigate('/mis-eventos')} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center gap-2 font-medium text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+            <span>📅</span> Mis Eventos
+          </button>
+          <button type="button" onClick={() => navigate('/favoritos')} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center gap-2 font-medium text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+            <span>⭐</span> Favoritos
+          </button>
+          <button type="button" onClick={() => navigate('/balance')} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center gap-2 font-medium text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+            <span>💰</span> Balance
+          </button>
+          <button type="button" onClick={() => navigate('/configuracion')} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center gap-2 font-medium text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+            <span>⚙️</span> Configuración
+          </button>
+        </div>
+      )}
+
       {showFollowers && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">

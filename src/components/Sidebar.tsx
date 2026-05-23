@@ -28,7 +28,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   return (
     <>
-      <aside className={`${collapsed ? 'w-16' : 'w-64'} h-screen bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 transition-all duration-200 z-30`}>
+      <aside className={`${collapsed ? 'w-16' : 'w-64'} h-screen bg-white border-r border-gray-200 hidden md:flex flex-col fixed left-0 top-0 transition-all duration-200 z-30`}>
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           {!collapsed && <h1 className="text-xl font-bold text-indigo-600">Eventia</h1>}
           <button type="button" onClick={onToggle}

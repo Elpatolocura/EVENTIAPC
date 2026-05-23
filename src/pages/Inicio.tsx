@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getProfile, getAllEvents } from '../lib/db'
 import { supabase } from '../lib/supabase'
 import { formatPrice } from '../lib/price'
+import LazyImage from '../components/LazyImage'
 
 export default function Inicio() {
   const { user } = useAuth()
@@ -18,6 +19,10 @@ export default function Inicio() {
   const [showStickyHeader, setShowStickyHeader] = useState(false)
   const [events, setEvents] = useState<any[]>([])
   const [favorites, setFavorites] = useState<Set<number>>(new Set())
+  const [userCity, setUserCity] = useState<string | null>(null)
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle')
+  const [showLocationBanner, setShowLocationBanner] = useState(false)
+  const locationAsked = useRef(false)
 
   useEffect(() => {
     if (!user) return
@@ -27,6 +32,57 @@ export default function Inicio() {
   useEffect(() => {
     getAllEvents().then(setEvents)
   }, [])
+
+  // Mostrar banner de geolocalización tras 1.5 s si no se ha pedido antes
+  useEffect(() => {
+    const alreadyAsked = localStorage.getItem('eventia_location_asked')
+    if (!alreadyAsked) {
+      const timer = setTimeout(() => setShowLocationBanner(true), 1500)
+      return () => clearTimeout(timer)
+    } else if (alreadyAsked === 'granted') {
+      requestLocation()
+    }
+  }, [])
+
+  const requestLocation = () => {
+    if (locationAsked.current) return
+    locationAsked.current = true
+    setLocationStatus('requesting')
+    setShowLocationBanner(false)
+    localStorage.setItem('eventia_location_asked', 'requesting')
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        setLocationStatus('granted')
+        localStorage.setItem('eventia_location_asked', 'granted')
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`,
+            { headers: { 'Accept-Language': 'es' } }
+          )
+          const data = await res.json()
+          const city =
+            data?.address?.city ||
+            data?.address?.town ||
+            data?.address?.village ||
+            data?.address?.county ||
+            'Tu ciudad'
+          setUserCity(city)
+        } catch {
+          setUserCity('Tu ciudad')
+        }
+      },
+      () => {
+        setLocationStatus('denied')
+        localStorage.setItem('eventia_location_asked', 'denied')
+      },
+      { timeout: 8000 }
+    )
+  }
+
+  const dismissLocationBanner = () => {
+    setShowLocationBanner(false)
+    localStorage.setItem('eventia_location_asked', 'denied')
+  }
 
   useEffect(() => {
     if (!user) return
@@ -97,11 +153,16 @@ export default function Inicio() {
 
   const hoyEvents = allEvents.filter((e) => e.date && isSameDay(e.date, today))
   const mananaEvents = allEvents.filter((e) => e.date && isSameDay(e.date, tomorrow))
+  // "Cerca de mí" usa la ciudad obtenida por GPS; filtra eventos que compartan esa ciudad
+  const cercaEvents = userCity
+    ? allEvents.filter((e) => e.location?.toLowerCase().includes(userCity.toLowerCase()))
+    : []
 
   const filters = [
     { key: 'populares', label: t('inicio.destacados'), count: popularEvents.length },
     { key: 'hoy', label: 'Hoy', count: hoyEvents.length },
     { key: 'mañana', label: 'Mañana', count: mananaEvents.length },
+    ...(userCity ? [{ key: 'cerca', label: `📍 ${userCity}`, count: cercaEvents.length }] : []),
   ]
 
   const clearFilters = () => {
@@ -122,6 +183,8 @@ export default function Inicio() {
       result = hoyEvents
     } else if (activeFilter === 'mañana') {
       result = mananaEvents
+    } else if (activeFilter === 'cerca') {
+      result = cercaEvents
     }
     if (selectedCategories.size > 0) {
       result = result.filter((e) => selectedCategories.has(e.cat))
@@ -147,6 +210,7 @@ export default function Inicio() {
   if (activeFilter === 'populares') activeFilterLabels.push(t('inicio.destacados'))
   else if (activeFilter === 'hoy') activeFilterLabels.push('Hoy')
   else if (activeFilter === 'mañana') activeFilterLabels.push('Mañana')
+  else if (activeFilter === 'cerca' && userCity) activeFilterLabels.push(`📍 ${userCity}`)
   selectedCategories.forEach((c) => activeFilterLabels.push(c))
   selectedTypes.forEach((typ) => activeFilterLabels.push(typ === 'Gratis' ? t('inicio.gratis') : typ === 'Pagado' ? t('inicio.pagado') : typ))
 
@@ -184,6 +248,39 @@ export default function Inicio() {
           </div>
         </div>
       )}
+
+      {/* ── Banner de permiso de geolocalización ── */}
+      {showLocationBanner && (
+        <div className="mb-4 flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 animate-fade-in">
+          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 text-lg">📍</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900">¿Eventos cerca tuyo?</p>
+            <p className="text-xs text-gray-500">Activa tu ubicación para ver eventos en tu ciudad al instante.</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button type="button" onClick={dismissLocationBanner}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer">
+              Ahora no
+            </button>
+            <button type="button" onClick={requestLocation}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors cursor-pointer">
+              Activar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Indicador de carga de GPS ── */}
+      {locationStatus === 'requesting' && (
+        <div className="mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-50 border border-indigo-100">
+          <svg className="w-4 h-4 animate-spin text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p className="text-xs text-indigo-700 font-medium">Obteniendo tu ubicación...</p>
+        </div>
+      )}
+
       <div className={`${showStickyHeader ? 'pt-[72px] ' : ''}mb-8`}>
         <h1 className="text-2xl font-bold text-gray-900">
           {t('inicio.bienvenido')}, {userName} 👋
@@ -193,7 +290,10 @@ export default function Inicio() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          {profile?.ubicacion || 'Colombia'}
+          {userCity || profile?.ubicacion || 'Colombia'}
+          {locationStatus === 'granted' && userCity && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-semibold">📍 GPS</span>
+          )}
         </div>
       </div>
 
@@ -317,14 +417,13 @@ export default function Inicio() {
                       </svg>
                     </button>
                     <Link to={`/evento/${event.id}`}>
-                      <div className={`h-28 relative ${!event.cover ? `bg-gradient-to-br from-indigo-500 to-fuchsia-500` : ''}`}>
-                        {event.cover && typeof event.cover === 'string' && event.cover.startsWith('data:') ? (
-                          <img src={event.cover} alt="" className="w-full h-full object-cover" />
-                        ) : event.cover && typeof event.cover === 'string' && !event.cover.startsWith('from-') ? (
-                          <img src={event.cover} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-2xl">🎉</div>
-                        )}
+                      <div className="h-28 relative overflow-hidden">
+                        <LazyImage
+                          src={event.cover}
+                          alt={event.title}
+                          fallbackGradient="from-indigo-500 to-fuchsia-500"
+                          fallbackEmoji="🎉"
+                        />
                       </div>
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2">

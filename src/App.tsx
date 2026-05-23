@@ -4,6 +4,8 @@ import { useAuth } from './context/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
 import ToastContainer from './components/ToastContainer'
 import Sidebar from './components/Sidebar'
+import BottomNav from './components/BottomNav'
+import { PageSkeleton } from './components/Skeletons'
 import Inicio from './pages/Inicio'
 import Favoritos from './pages/Favoritos'
 import CrearEvento from './pages/CrearEvento'
@@ -41,10 +43,7 @@ function App() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <svg className="w-8 h-8 animate-spin text-indigo-600" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
+        <PageSkeleton />
       </div>
     )
   }
@@ -64,10 +63,11 @@ function App() {
 
   return (
     <NotificationProvider>
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+      <BottomNav />
       <ToastContainer />
-      <main className={`${sidebarCollapsed ? 'ml-16' : 'ml-64'} flex-1 p-8 transition-all duration-200`}>
+      <main className={`flex-1 p-4 md:p-8 transition-all duration-200 w-full md:w-auto pb-20 md:pb-8 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
         <Routes>
           <Route path="/" element={<Inicio />} />
           <Route path="/favoritos" element={<Favoritos />} />
