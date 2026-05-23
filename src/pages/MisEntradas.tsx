@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { getTickets, markExpiredTickets, releaseLockedFunds } from '../lib/db'
 import { supabase } from '../lib/supabase'
 import { useLanguage } from '../context/LanguageContext'
+import { QRCodeSVG } from 'qrcode.react'
 
 const statusColors: Record<string, string> = {
   válida: 'bg-green-100 text-green-700',
@@ -175,6 +176,11 @@ export default function MisEntradas() {
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">{ev.title || 'Evento'}</h2>
                   <p className="text-sm text-gray-500">{ev.date || ''} {ev.hour ? `• ${ev.hour}` : ''}</p>
+                </div>
+                <div className="flex justify-center py-3">
+                  <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                    <QRCodeSVG value={detailTicket.code || String(detailTicket.id)} size={160} level="M" />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
                   <span className="text-sm text-gray-600">{t('mis_entradas.codigo')}</span>

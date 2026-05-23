@@ -47,6 +47,8 @@ export default function DetalleEvento() {
   const [scrolled, setScrolled] = useState(false)
   const [fullScreenCarousel, setFullScreenCarousel] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [orgRating, setOrgRating] = useState(0)
+  const [orgReviewCount, setOrgReviewCount] = useState(0)
   const descMaxLen = 150
 
   useEffect(() => {
@@ -70,6 +72,16 @@ export default function DetalleEvento() {
       if (data) setHasTicket(true)
     })
   }, [id, user])
+  useEffect(() => {
+    if (!id) return
+    supabase.from('reviews').select('rating').eq('event_id', id).then(({ data }) => {
+      if (data && data.length > 0) {
+        const avg = Math.round(data.reduce((s, r) => s + r.rating, 0) / data.length)
+        setOrgRating(avg)
+        setOrgReviewCount(data.length)
+      }
+    })
+  }, [id, reviews])
   useEffect(() => {
     if (!user || !event) return
     supabase.from('favorites').select('id').eq('user_id', user.id).eq('event_id', event.id).maybeSingle().then(({ data }) => {
@@ -317,13 +329,32 @@ export default function DetalleEvento() {
             </div>
           </div>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-3">{t('evento.servicios')}</h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">{t('evento.servicios')}</h2>
             <div className="flex flex-wrap gap-2">
               {event.parking && <span className="px-3 py-1.5 rounded-lg bg-green-50 text-xs font-medium text-green-700">🅿️ {t('evento.estacionamiento')}</span>}
               {event.accessibility && <span className="px-3 py-1.5 rounded-lg bg-blue-50 text-xs font-medium text-blue-700">♿ {t('evento.accesibilidad')}</span>}
               <span className="px-3 py-1.5 rounded-lg bg-gray-50 text-xs font-medium text-gray-600">🎟️ {event.attendees}/{event.capacity} {t('evento.asistentes')}</span>
             </div>
           </div>
+
+          {event.address && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">{t('evento.ubicacion')}</h2>
+              <div className="rounded-xl overflow-hidden border border-gray-200 mb-3">
+                <iframe
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=-74.5,4.5,-74.0,5.0&layer=mapnik&marker=4.7,-74.2`}
+                  width="100%" height="200" style={{ border: 0 }}
+                  loading="lazy"
+                  title={event.address}
+                />
+              </div>
+              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address + (event.city ? ', ' + event.city : ''))}`}
+                target="_blank" rel="noopener noreferrer"
+                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+                {t('evento.abrir_maps')} →
+              </a>
+            </div>
+          )}
 
           <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100">
             <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3">{t('evento.organizador_label')}</p>
@@ -338,6 +369,12 @@ export default function DetalleEvento() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-900">{event.organizer}</p>
+                {orgRating > 0 && (
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="flex gap-0.5">{[1, 2, 3, 4, 5].map((s) => (<span key={s} className="text-xs">{s <= orgRating ? '⭐' : '☆'}</span>))}</div>
+                    <span className="text-xs text-gray-400">({orgReviewCount})</span>
+                  </div>
+                )}
                 <p className="text-xs text-indigo-600 font-medium">{t('evento.ver_perfil')}</p>
               </div>
             </button>

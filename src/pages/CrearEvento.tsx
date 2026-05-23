@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { createEvent, updateEvent, getEventById, getUserCategories, addUserCategory } from '../lib/db'
 import { improveWithAI } from '../lib/ai'
 import { getCurrency } from '../lib/price'
+import { supabase } from '../lib/supabase'
 
 const predefinedCategories = [
   'Música', 'Deportes', 'Tecnología', 'Arte',
@@ -118,6 +119,7 @@ export default function CrearEvento() {
   const removePhoto = (id: number) =>
     setPhotos((prev) => prev.filter((p) => p.id !== id))
 
+  const [dragOver, setDragOver] = useState(false)
   const handlePhotoUpload = (id: number) => {
     const input = document.createElement('input')
     input.type = 'file'
@@ -134,6 +136,20 @@ export default function CrearEvento() {
       }
     }
     input.click()
+  }
+
+  const handleDrop = (e: React.DragEvent, id: number) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        const url = ev.target?.result as string
+        setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, url } : p)))
+      }
+      reader.readAsDataURL(file)
+    }
   }
 
   const handleAddCategory = async () => {
@@ -200,6 +216,14 @@ export default function CrearEvento() {
 
   const handlePublish = async () => {
     if (!user) return
+    const { count } = await supabase.from('events')
+      .select('id', { count: 'exact', head: true })
+      .eq('organizer_id', user.id)
+      .gte('created_at', new Date(Date.now() - 3600000).toISOString())
+    if (count && count >= 5) {
+      setPublishError('Límite de 5 eventos por hora. Espera un momento antes de publicar otro.')
+      return
+    }
     const months: Record<string, number> = { ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11 }
     const dm = form.fecha.match(/^(\d+)\s+(\w+)\s+(\d+)$/)
     if (dm) {
@@ -713,16 +737,20 @@ export default function CrearEvento() {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => handlePhotoUpload(p.id)}
-                        className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors cursor-pointer"
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={(e) => handleDrop(e, p.id)}
+                        className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-gray-400 transition-colors cursor-pointer ${dragOver ? 'border-indigo-500 bg-indigo-50 text-indigo-500' : 'border-gray-200 hover:border-indigo-400 hover:text-indigo-500'}`}
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        <span className="text-[10px]">Agregar</span>
-                      </button>
+                        <div onClick={() => handlePhotoUpload(p.id)} className="flex flex-col items-center justify-center gap-1 w-full h-full">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          <span className="text-[10px]">Agregar</span>
+                          <span className="text-[8px] text-gray-300">o arrastra</span>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}

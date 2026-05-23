@@ -6,7 +6,7 @@ import { useLanguage } from '../context/LanguageContext'
 export default function CrearCuenta() {
   const { t } = useLanguage()
   const navigate = useNavigate()
-  const [form, setForm] = useState({ nombre: '', email: '', password: '', confirmar: '' })
+  const [form, setForm] = useState({ nombre: '', email: '', password: '', confirmar: '', tipo: 'asistente' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -18,7 +18,7 @@ export default function CrearCuenta() {
     const { error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
-      options: { data: { full_name: form.nombre } }
+      options: { data: { full_name: form.nombre, tipo: form.tipo } }
     })
     setLoading(false)
     if (error) return setError(error.message)
@@ -60,6 +60,19 @@ export default function CrearCuenta() {
             {form.confirmar && form.password !== form.confirmar && (
               <p className="text-xs text-red-500 mt-1">{t('crear_cuenta.no_coinciden')}</p>
             )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('crear_cuenta.tipo')}</label>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setForm((p) => ({ ...p, tipo: 'asistente' }))}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-medium border-2 transition-all cursor-pointer ${form.tipo === 'asistente' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                🎟️ {t('crear_cuenta.asistente')}
+              </button>
+              <button type="button" onClick={() => setForm((p) => ({ ...p, tipo: 'organizador' }))}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-medium border-2 transition-all cursor-pointer ${form.tipo === 'organizador' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                📅 {t('crear_cuenta.organizador')}
+              </button>
+            </div>
           </div>
           <button type="submit" disabled={loading || !form.nombre || !form.email || !form.password || form.password !== form.confirmar}
             className="w-full py-2.5 rounded-xl bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer">

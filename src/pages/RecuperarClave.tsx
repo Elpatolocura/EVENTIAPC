@@ -1,11 +1,25 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
+import { supabase } from '../lib/supabase'
 
 export default function RecuperarClave() {
   const { t } = useLanguage()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSend = async () => {
+    setLoading(true)
+    setError('')
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/configuracion/cambiar-contrasena`,
+    })
+    setLoading(false)
+    if (err) return setError(err.message)
+    setSent(true)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -35,9 +49,10 @@ export default function RecuperarClave() {
                   placeholder={t('recuperar.email_placeholder')}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
               </div>
-              <button type="button" onClick={() => setSent(true)} disabled={!email}
+              {error && <div className="p-3 rounded-xl bg-red-50 text-red-600 text-sm">{error}</div>}
+              <button type="button" onClick={handleSend} disabled={!email || loading}
                 className="w-full py-2.5 rounded-xl bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer">
-                {t('recuperar.enviar')}
+                {loading ? t('recuperar.enviando') : t('recuperar.enviar')}
               </button>
               <p className="text-xs text-gray-500 text-center mt-4">
                 <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
