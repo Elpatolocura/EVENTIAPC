@@ -45,6 +45,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPlan((data?.plan as Plan) || 'Gratis')
   }, [])
 
+  const ensureProfile = useCallback(async (u: User) => {
+    const { data: existing } = await supabase.from('profiles').select('id').eq('id', u.id).maybeSingle()
+    if (!existing) {
+      const fullName = u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0] || 'Usuario'
+      const avatarUrl = u.user_metadata?.avatar_url || u.user_metadata?.picture || ''
+      const tipo = u.user_metadata?.tipo || 'asistente'
+      await supabase.from('profiles').upsert({
+        id: u.id,
+        nombre: fullName,
+        avatar_url: avatarUrl,
+        tipo,
+        plan: 'Gratis',
+        language: navigator.language?.startsWith('es') ? 'es' : 'en',
+      }, { onConflict: 'id' })
+    }
+  }, [])
+
   const refreshPlan = useCallback(async () => {
     if (user) await fetchPlan(user.id)
   }, [user, fetchPlan])
@@ -55,20 +72,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearSupabaseSession()
       } else {
         setUser(session.user)
+        ensureProfile(session.user)
         fetchPlan(session.user.id)
       }
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const u = session?.user ?? null
       setUser(u)
-      if (u) fetchPlan(u.id)
+      if (u) {
+        await ensureProfile(u)
+        fetchPlan(u.id)
+      }
       else setPlan('Gratis')
     })
 
     return () => subscription.unsubscribe()
-  }, [fetchPlan])
+  }, [fetchPlan, ensureProfile])
 
   const isPremium = plan === 'Premium'
 
