@@ -1,222 +1,184 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { supabase } from '../lib/supabase'
+import { useLanguage } from '../context/LanguageContext'
+import { getAllEvents, updateProfile } from '../lib/db'
 
-const ICONS: Record<string, string> = {
-  Música: '🎵', Deportes: '⚽', Tecnología: '💻', Arte: '🎨',
-  Gastronomía: '🍽️', Negocios: '💼', Moda: '👗', Cine: '🎬',
-  Teatro: '🎭', Educación: '📚', Salud: '🏥', Viajes: '✈️',
-  Fotografía: '📷', Literatura: '📖', Videojuegos: '🎮',
-}
+const languages = [
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+]
 
 export default function Onboarding() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { setLang } = useLanguage()
   const [step, setStep] = useState(0)
-  const [categories] = useState<string[]>([])
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
-  const [ticketType, setTicketType] = useState<string>('')
+  const [categories, setCategories] = useState<string[]>([])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [location, setLocation] = useState('')
+  const [locating, setLocating] = useState(false)
+  const [selectedLang, setSelectedLang] = useState('es')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [locating, setLocating] = useState(false)
 
-  const requestDeviceLocation = () => {
-    if (!navigator.geolocation) { setError('Tu dispositivo no soporta geolocalización'); return }
-    setLocating(true); setError('')
+  useEffect(() => {
+    getAllEvents().then((events) => {
+      const cats = [...new Set(events.map((e: any) => e.category || 'General'))].sort() as string[]
+      setCategories(cats)
+    })
+  }, [])
+
+  const getLocation = () => {
+    if (!navigator.geolocation) return
+    setLocating(true)
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&accept-language=es`
-          )
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`)
           const data = await res.json()
-          const city = data?.address?.city || data?.address?.town || data?.address?.village || data?.address?.state || ''
-          if (city) setLocation(city)
-          else setError('No se pudo determinar tu ciudad. Escríbela manualmente.')
+          setLocation(data.address?.city || data.address?.town || data.address?.state || '')
         } catch {
-          setError('No se pudo determinar tu ciudad. Escríbela manualmente.')
+          setLocation(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`)
         }
         setLocating(false)
       },
-      () => { setError('Permiso de ubicación denegado. Escríbela manualmente.'); setLocating(false) },
-      { enableHighAccuracy: true }
+      () => setLocating(false),
+      { timeout: 10000 }
     )
   }
 
   const toggleCategory = (cat: string) => {
-    setSelectedCategories((prev) => {
-      const next = new Set(prev)
-      if (next.has(cat)) next.delete(cat)
-      else next.add(cat)
-      return next
-    })
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    )
   }
 
-  useEffect(() => {
-    if (!user) { navigate('/', { replace: true }); return }
-    supabase.from('profiles').select('categorias').eq('id', user.id).single().then(({ data }) => {
-      if (data?.categorias?.length) navigate('/', { replace: true })
-    })
-  }, [user, navigate])
-
-  const finish = async () => {
-    if (!user || !ticketType || !location.trim()) { setError('Completa todos los campos'); return }
-    setSaving(true); setError('')
-    const { error: err } = await supabase.from('profiles').upsert({
-      id: user.id,
-      categorias: [...selectedCategories],
-      ubicacion: location.trim(),
-    }, { onConflict: 'id' })
-    if (err) { setSaving(false); setError(err.message); return }
-    await supabase.auth.updateUser({ data: { tipo_entrada: ticketType } })
+  const handleFinish = async () => {
+    if (!user) return
+    setSaving(true)
+    setError('')
+    try {
+      await updateProfile(user.id, {
+        categorias: selectedCategories,
+        ubicacion: location,
+        idioma: selectedLang,
+        nombre: user.user_metadata?.full_name || '',
+      })
+      setLang(selectedLang)
+      navigate('/', { replace: true })
+    } catch (e: any) {
+      setError(e.message)
+    }
     setSaving(false)
-    navigate('/', { replace: true })
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4">
-      <div className="w-full max-w-lg">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-orbitron font-bold text-slate-900">Eventia</h1>
-          <p className="text-sm font-share-tech text-slate-500 mt-1">Personaliza tu experiencia</p>
+          <h1 className="text-3xl font-orbitron font-extrabold uppercase text-gray-900">Eventia</h1>
+          <p className="text-sm font-share-tech text-slate-600 mt-1">
+            {step === 0 ? 'Elige tus categorías favoritas' :
+             step === 1 ? '¿Dónde te encuentras?' :
+             'Selecciona tu idioma'}
+          </p>
         </div>
-        <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent to-accent-secondary"></div>
-          <div className="flex items-center justify-center gap-2 mb-6">
-            {[0, 1, 2].map((s) => (
-              <div
-                key={s}
-                className={`w-3 h-3 rounded-full border-2 border-black transition-all ${
-                  step === s
-                    ? 'bg-accent shadow-[1px_1px_0px_#000] scale-125'
-                    : step > s
-                      ? 'bg-accent-secondary'
-                      : 'bg-[#f8f9fa]'
-                }`}
-              />
+
+        <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[4px_4px_0px_#000] p-6 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
+
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 border-2 border-black text-red-600 text-sm font-share-tech shadow-[2px_2px_0px_#000] mb-4">{error}</div>
+          )}
+
+          {/* Step indicators */}
+          <div className="flex items-center gap-2 mb-6">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={`flex-1 h-2 rounded-full border border-black transition-colors ${step >= i ? 'bg-gradient-to-r from-cyan-400 to-fuchsia-400' : 'bg-gray-200'}`} />
             ))}
           </div>
-          {error && (
-            <div className="p-3 rounded bg-red-50 border-2 border-red-400 text-red-600 text-sm font-share-tech mb-4">{error}</div>
-          )}
+
+          {/* Step 0: Categories */}
           {step === 0 && (
-            <div>
-              <h2 className="text-base font-orbitron font-bold text-slate-900 mb-1 uppercase">¿Qué tipo de eventos te interesan?</h2>
-              <p className="text-xs font-share-tech text-slate-500 mb-4">Selecciona una o más categorías</p>
-              <div className="flex flex-wrap gap-2">
+            <div className="space-y-3">
+              <p className="text-xs font-share-tech text-slate-500 uppercase mb-3">Selecciona las categorías que te interesan</p>
+              <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
                 {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => toggleCategory(cat)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded text-xs font-bold font-share-tech border-2 border-black transition-all cursor-pointer uppercase ${
-                      selectedCategories.has(cat)
-                        ? 'bg-accent text-white shadow-[1px_1px_0px_#000]'
-                        : 'bg-white text-slate-600 hover:bg-accent-light'
-                    }`}
-                  >
-                    <span>{ICONS[cat] || '📌'}</span>
+                  <button key={cat} type="button" onClick={() => toggleCategory(cat)}
+                    className={`px-4 py-2 rounded-xl text-xs font-orbitron font-bold uppercase border-2 transition-all cursor-pointer shadow-[2px_2px_0px_#000] ${
+                      selectedCategories.includes(cat)
+                        ? 'cyber-btn-active border-2 border-black'
+                        : 'cyber-btn border-black'
+                    }`}>
                     {cat}
                   </button>
                 ))}
               </div>
-              <div className="flex justify-end mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (selectedCategories.size === 0) { setError('Selecciona al menos una categoría'); return }
-                    setError(''); setStep(1)
-                  }}
-                  className="px-6 py-2.5 rounded font-bold text-sm font-orbitron cyber-btn-active border-2 border-black shadow-[2px_2px_0px_#000] transition-all cursor-pointer uppercase"
-                >
-                  Siguiente
-                </button>
-              </div>
-            </div>
-          )}
-          {step === 1 && (
-            <div>
-              <h2 className="text-base font-orbitron font-bold text-slate-900 mb-1 uppercase">¿Qué tipo de entrada prefieres?</h2>
-              <p className="text-xs font-share-tech text-slate-500 mb-4">Selecciona una opción</p>
-              <div className="flex gap-3 mb-6">
-                {[
-                  { key: 'fisica', icon: '🎟️', label: 'Física / Presencial' },
-                  { key: 'virtual', icon: '💻', label: 'Virtual / Online' },
-                ].map((opt) => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => setTicketType(opt.key)}
-                    className={`flex-1 p-4 rounded text-center border-2 border-black transition-all cursor-pointer ${
-                      ticketType === opt.key
-                        ? 'bg-accent text-white shadow-[2px_2px_0px_#000]'
-                        : 'bg-white text-slate-600 hover:bg-accent-light'
-                    }`}
-                  >
-                    <div className="text-2xl mb-2">{opt.icon}</div>
-                    <p className="text-xs font-orbitron font-bold uppercase">{opt.label}</p>
-                  </button>
-                ))}
-              </div>
-              <div className="flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep(0)}
-                  className="px-6 py-2.5 rounded font-bold text-sm font-share-tech cyber-btn border-2 border-black transition-all cursor-pointer uppercase"
-                >
-                  Atrás
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!ticketType) { setError('Selecciona un tipo de entrada'); return }
-                    setError(''); setStep(2)
-                  }}
-                  className="px-6 py-2.5 rounded font-bold text-sm font-orbitron cyber-btn-active border-2 border-black shadow-[2px_2px_0px_#000] transition-all cursor-pointer uppercase"
-                >
-                  Siguiente
-                </button>
-              </div>
-            </div>
-          )}
-          {step === 2 && (
-            <div>
-              <h2 className="text-base font-orbitron font-bold text-slate-900 mb-1 uppercase">¿Dónde te ubicas?</h2>
-              <p className="text-xs font-share-tech text-slate-500 mb-4">Ciudad o región donde vives</p>
-              <button
-                type="button"
-                onClick={requestDeviceLocation}
-                disabled={locating}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded text-xs font-bold font-share-tech cyber-btn border-2 border-black shadow-[1px_1px_0px_#000] disabled:opacity-40 transition-all cursor-pointer uppercase mb-3"
-              >
-                {locating ? '📍 Obteniendo ubicación...' : '📍 Usar ubicación del dispositivo'}
+              <button type="button" onClick={() => setStep(1)}
+                className="w-full py-2.5 rounded-xl cyber-btn-active border-2 border-black text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer mt-4">
+                Continuar →
               </button>
-              <p className="text-center text-xs font-share-tech text-slate-400 mb-3">— O escríbela manualmente —</p>
-              <input
-                type="text"
-                value={location}
-                onChange={(e) => { setLocation(e.target.value); setError('') }}
-                placeholder="Ej: Medellín, Colombia"
-                className="w-full px-4 py-2.5 rounded cyber-input border-2 border-black text-sm"
-                autoFocus
-              />
-              <div className="flex justify-between mt-6">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="px-6 py-2.5 rounded font-bold text-sm font-share-tech cyber-btn border-2 border-black transition-all cursor-pointer uppercase"
-                >
-                  Atrás
+            </div>
+          )}
+
+          {/* Step 1: Location */}
+          {step === 1 && (
+            <div className="space-y-4">
+              <p className="text-xs font-share-tech text-slate-500 uppercase mb-3">Ingresa tu ubicación para ver eventos cercanos</p>
+              <div>
+                <input type="text" value={location} onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Ciudad, Departamento"
+                  className="w-full px-4 py-2.5 rounded-xl cyber-input text-sm" />
+              </div>
+              <button type="button" onClick={getLocation} disabled={locating}
+                className="w-full py-2.5 rounded-xl cyber-btn border-2 border-black text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] disabled:opacity-40 cursor-pointer flex items-center justify-center gap-2">
+                {locating ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                )}
+                {locating ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}
+              </button>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setStep(0)}
+                  className="cyber-btn flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">
+                  ← Atrás
                 </button>
-                <button
-                  type="button"
-                  onClick={finish}
-                  disabled={saving}
-                  className="px-6 py-2.5 rounded font-bold text-sm font-orbitron cyber-btn-active border-2 border-black shadow-[2px_2px_0px_#000] disabled:opacity-40 transition-all cursor-pointer uppercase"
-                >
-                  {saving ? 'Guardando...' : 'Finalizar'}
+                <button type="button" onClick={() => setStep(2)}
+                  className="cyber-btn-active flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">
+                  Continuar →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Language */}
+          {step === 2 && (
+            <div className="space-y-3">
+              <p className="text-xs font-share-tech text-slate-500 uppercase mb-3">¿En qué idioma prefieres ver la app?</p>
+              {languages.map((lang) => (
+                <button key={lang.code} type="button" onClick={() => setSelectedLang(lang.code)}
+                  className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer shadow-[2px_2px_0px_#000] ${
+                    selectedLang === lang.code
+                      ? 'cyber-btn-active border-2 border-black'
+                      : 'cyber-btn border-black'
+                  }`}>
+                  <span className="text-2xl">{lang.flag}</span>
+                  <span className="text-sm font-orbitron font-bold uppercase">{lang.label}</span>
+                  {selectedLang === lang.code && (
+                    <svg className="w-5 h-5 ml-auto" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                  )}
+                </button>
+              ))}
+              <div className="flex gap-3 mt-4">
+                <button type="button" onClick={() => setStep(1)}
+                  className="cyber-btn flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">
+                  ← Atrás
+                </button>
+                <button type="button" onClick={handleFinish} disabled={saving}
+                  className="cyber-btn-active flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] disabled:opacity-40 cursor-pointer">
+                  {saving ? 'Guardando...' : 'Finalizar 🚀'}
                 </button>
               </div>
             </div>

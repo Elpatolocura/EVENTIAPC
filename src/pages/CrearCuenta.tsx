@@ -6,7 +6,7 @@ import { useLanguage } from '../context/LanguageContext'
 export default function CrearCuenta() {
   const { t } = useLanguage()
   const navigate = useNavigate()
-  const [form, setForm] = useState({ nombre: '', email: '', password: '', confirmar: '', tipo: 'asistente' })
+  const [form, setForm] = useState({ nombre: '', email: '', password: '', confirmar: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -18,11 +18,11 @@ export default function CrearCuenta() {
     const { error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
-      options: { data: { full_name: form.nombre, tipo: form.tipo } }
+      options: { data: { full_name: form.nombre } }
     })
     setLoading(false)
     if (error) return setError(error.message)
-    navigate('/')
+    navigate('/onboarding', { replace: true })
   }
 
   return (
@@ -61,19 +61,6 @@ export default function CrearCuenta() {
             {form.confirmar && form.password !== form.confirmar && (
               <p className="text-xs text-red-500 mt-1 font-share-tech">{t('crear_cuenta.no_coinciden')}</p>
             )}
-          </div>
-          <div>
-            <label className="block font-share-tech text-slate-600 uppercase text-xs mb-1.5">{t('crear_cuenta.tipo')}</label>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setForm((p) => ({ ...p, tipo: 'asistente' }))}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase border-2 transition-all cursor-pointer shadow-[2px_2px_0px_#000] ${form.tipo === 'asistente' ? 'cyber-btn-active border-2 border-black' : 'cyber-btn border-black'}`}>
-                🎟️ {t('crear_cuenta.asistente')}
-              </button>
-              <button type="button" onClick={() => setForm((p) => ({ ...p, tipo: 'organizador' }))}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase border-2 transition-all cursor-pointer shadow-[2px_2px_0px_#000] ${form.tipo === 'organizador' ? 'cyber-btn-active border-2 border-black' : 'cyber-btn border-black'}`}>
-                📅 {t('crear_cuenta.organizador')}
-              </button>
-            </div>
           </div>
           <button type="submit" disabled={loading || !form.nombre || !form.email || !form.password || form.password !== form.confirmar}
             className="w-full py-2.5 rounded-xl cyber-btn-active border-2 border-black text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer">

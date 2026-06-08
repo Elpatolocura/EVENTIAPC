@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { useState, useEffect } from 'react'
+import { supabase } from './lib/supabase'
 import { NotificationProvider } from './context/NotificationContext'
 import ToastContainer from './components/ToastContainer'
 import Sidebar from './components/Sidebar'
@@ -31,6 +33,7 @@ import Balance from './pages/Balance'
 import Login from './pages/Login'
 import CrearCuenta from './pages/CrearCuenta'
 import RecuperarClave from './pages/RecuperarClave'
+import Onboarding from './pages/Onboarding'
 import Semilla from './pages/Semilla'
 
 function HamburgerButton() {
@@ -58,10 +61,24 @@ function HamburgerButton() {
 function AppContent() {
   const { user, loading } = useAuth()
   const location = useLocation()
-  const authRoutes = ['/login', '/crear-cuenta', '/recuperar-clave']
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true)
+  const authRoutes = ['/login', '/crear-cuenta', '/recuperar-clave', '/onboarding']
   const isAuthRoute = authRoutes.includes(location.pathname)
 
-  if (loading) {
+  useEffect(() => {
+    if (!user) { setCheckingOnboarding(false); return }
+    supabase.from('profiles').select('categorias').eq('id', user.id).maybeSingle().then(({ data }) => {
+      if (!data || !data.categorias || data.categorias.length === 0) {
+        setNeedsOnboarding(true)
+      } else {
+        setNeedsOnboarding(false)
+      }
+      setCheckingOnboarding(false)
+    })
+  }, [user])
+
+  if (loading || checkingOnboarding) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <PageSkeleton />
@@ -70,7 +87,10 @@ function AppContent() {
   }
 
   if (!user && !isAuthRoute) return <Navigate to="/login" replace />
-  if (user && isAuthRoute) return <Navigate to="/" replace />
+  if (user && isAuthRoute && location.pathname !== '/onboarding') return <Navigate to="/" replace />
+  if (user && needsOnboarding && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />
+  }
 
   if (isAuthRoute) {
     return (
@@ -78,6 +98,7 @@ function AppContent() {
         <Route path="/login" element={<Login />} />
         <Route path="/crear-cuenta" element={<CrearCuenta />} />
         <Route path="/recuperar-clave" element={<RecuperarClave />} />
+        <Route path="/onboarding" element={<Onboarding />} />
       </Routes>
     )
   }
