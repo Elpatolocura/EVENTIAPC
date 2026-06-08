@@ -35,17 +35,17 @@ export default function ToastNotificacion({ id, title, message, data, onClose }:
   return (
     <div
       onClick={handleClick}
-      className="bg-indigo-600 text-white rounded-xl shadow-2xl border border-indigo-400 px-5 py-4 max-w-sm cursor-pointer animate-slide-up hover:bg-indigo-700 transition-colors"
+      className="bg-gradient-to-r from-cyan-600 to-fuchsia-700 text-white rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] px-5 py-4 max-w-sm cursor-pointer animate-slide-up transition-all hover:shadow-[2px_2px_0px_#000] hover:-translate-y-0.5"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold truncate">{title}</p>
-          <p className="text-xs text-indigo-100 mt-1 line-clamp-2">{message}</p>
+          <p className="font-orbitron text-sm font-bold truncate">{title}</p>
+          <p className="font-share-tech text-xs text-white/80 mt-1 line-clamp-2">{message}</p>
         </div>
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); clearTimeout(timerRef.current); onClose(id) }}
-          className="shrink-0 text-indigo-200 hover:text-white transition-colors cursor-pointer"
+          className="shrink-0 text-white/60 hover:text-white transition-colors cursor-pointer"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -91,10 +91,10 @@ export default function SearchBar({
   return (
     <div ref={containerRef} className="relative">
       {/* Input principal */}
-      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border bg-white transition-all duration-200 ${
-        focused ? 'border-indigo-400 ring-2 ring-indigo-100 shadow-sm' : 'border-gray-200'
+      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 bg-white transition-all duration-200 ${
+        focused ? 'border-cyan-400 shadow-[2px_2px_0px_#000]' : 'border-black shadow-[2px_2px_0px_#000]'
       }`}>
-        <svg className={`w-4 h-4 shrink-0 transition-colors ${focused ? 'text-indigo-500' : 'text-gray-400'}`}
+        <svg className={`w-4 h-4 shrink-0 transition-colors ${focused ? 'text-cyan-500' : 'text-gray-400'}`}
           fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
@@ -109,11 +109,11 @@ export default function SearchBar({
             if (e.key === 'Escape') { setFocused(false); inputRef.current?.blur() }
           }}
           placeholder={placeholder}
-          className="flex-1 text-sm text-gray-900 placeholder-gray-400 focus:outline-none bg-transparent"
+          className="flex-1 text-sm text-gray-900 placeholder-gray-400 focus:outline-none bg-transparent font-share-tech"
         />
         {internalValue && (
           <button type="button" onClick={clearSearch}
-            className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors cursor-pointer shrink-0">
+            className="w-5 h-5 rounded-full border border-black bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors cursor-pointer shrink-0 shadow-[1px_1px_0px_#000]">
             <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -123,24 +123,24 @@ export default function SearchBar({
 
       {/* Dropdown: historial + categorías */}
       {showDropdown && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-fade-in">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] z-50 overflow-hidden animate-fade-in">
           {history.length > 0 && (
             <div className="p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Búsquedas recientes</span>
+                <span className="font-share-tech text-[11px] font-bold text-gray-500 uppercase tracking-wider">Búsquedas recientes</span>
                 <button type="button" onClick={clearHistory}
-                  className="text-[11px] text-red-400 hover:text-red-600 cursor-pointer transition-colors">
+                  className="font-share-tech text-[11px] text-red-400 hover:text-red-600 cursor-pointer transition-colors">
                   Borrar
                 </button>
               </div>
               <div className="space-y-0.5">
                 {history.map((h) => (
                   <button key={h} type="button" onClick={() => handleSubmit(h)}
-                    className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-50 text-left cursor-pointer group transition-colors">
+                    className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-cyan-50 text-left cursor-pointer group transition-colors border border-transparent hover:border-cyan-200">
                     <svg className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="text-sm text-gray-700 flex-1">{h}</span>
+                    <span className="font-share-tech text-sm text-gray-700 flex-1">{h}</span>
                     <svg className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
                     </svg>
@@ -151,8 +151,8 @@ export default function SearchBar({
           )}
 
           {categories.length > 0 && (
-            <div className={`p-3 ${history.length > 0 ? 'border-t border-gray-100' : ''}`}>
-              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-2">
+            <div className={`p-3 ${history.length > 0 ? 'border-t-2 border-black' : ''}`}>
+              <span className="font-share-tech text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-2">
                 Categorías populares
               </span>
               <div className="flex flex-wrap gap-1.5">
@@ -162,7 +162,7 @@ export default function SearchBar({
                       onCategorySelect?.(cat)
                       setFocused(false)
                     }}
-                    className="px-3 py-1.5 rounded-lg bg-indigo-50 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer">
+                    className="px-3 py-1.5 rounded-lg border border-black bg-white text-xs font-share-tech text-gray-700 hover:bg-cyan-50 shadow-[1px_1px_0px_#000] transition-colors cursor-pointer">
                     {cat}
                   </button>
                 ))}

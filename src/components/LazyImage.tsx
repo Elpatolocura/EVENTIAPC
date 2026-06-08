@@ -45,7 +45,7 @@ export default function LazyImage({
   if (!src || hasError) {
     return (
       <div
-        className={`w-full h-full bg-gradient-to-br ${fallbackGradient} flex items-center justify-center text-2xl ${className}`}
+        className={`w-full h-full bg-gradient-to-br ${fallbackGradient} flex items-center justify-center text-2xl border-2 border-black ${className}`}
       >
         {fallbackEmoji}
       </div>
@@ -53,7 +53,7 @@ export default function LazyImage({
   }
 
   return (
-    <div className={`relative w-full h-full overflow-hidden ${className}`}>
+    <div className={`relative w-full h-full overflow-hidden border-2 border-black ${className}`}>
       {/* Placeholder de color mientras carga */}
       {!isLoaded && (
         <div className={`absolute inset-0 bg-gradient-to-br ${fallbackGradient} opacity-40 animate-pulse`} />
