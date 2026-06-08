@@ -64,10 +64,10 @@ export default function Sidebar() {
                   end={item.path === '/'}
                   onClick={close}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                    `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium border-2 transition-all duration-150 ${
                       isActive
-                        ? 'bg-accent-light text-accent-dark border-2 border-black shadow-[1px_1px_0px_#000]'
-                        : 'text-slate-700 hover:bg-accent-light hover:text-accent-dark'
+                        ? 'bg-accent-light text-accent-dark border-black shadow-[3px_3px_0px_#000] font-bold'
+                        : 'border-transparent text-slate-700 hover:bg-accent-light hover:text-accent-dark hover:border-black hover:shadow-[2px_2px_0px_#000]'
                     }`
                   }
                 >
@@ -88,17 +88,17 @@ export default function Sidebar() {
               <button
                 type="button"
                 onClick={() => { close(); navigate('/premium') }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold hover:from-amber-600 hover:to-orange-600 transition-all duration-200 shadow-sm cursor-pointer"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[2px_2px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all duration-150 cursor-pointer"
               >
                 <span className="text-lg">⭐</span>
-                <span>{t('sidebar.premium')}</span>
+                <span className="font-orbitron font-bold text-xs">{t('sidebar.premium')}</span>
               </button>
             </div>
           )}
 
           {isPremium && (
             <div className="px-3 mt-4">
-              <div className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-sm">
+              <div className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold border-2 border-black shadow-[3px_3px_0px_#000]">
                 <span className="text-lg">⭐</span>
                 <span>Plan Premium activo</span>
               </div>
@@ -113,10 +113,10 @@ export default function Sidebar() {
               end
               onClick={close}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium border-2 transition-all duration-150 ${
                   isActive
-                    ? 'bg-accent-light text-accent-dark border-2 border-black shadow-[1px_1px_0px_#000]'
-                    : 'text-slate-700 hover:bg-accent-light hover:text-accent-dark'
+                    ? 'bg-accent-light text-accent-dark border-black shadow-[3px_3px_0px_#000] font-bold'
+                    : 'border-transparent text-slate-700 hover:bg-accent-light hover:text-accent-dark hover:border-black hover:shadow-[2px_2px_0px_#000]'
                 }`
               }
             >
@@ -127,11 +127,11 @@ export default function Sidebar() {
             <button
               type="button"
               onClick={() => setShowPremiumModal(true)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-accent-light hover:text-accent-dark transition-colors duration-200 cursor-pointer relative"
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 border-2 border-transparent hover:border-black hover:shadow-[2px_2px_0px_#000] hover:bg-accent-light hover:text-accent-dark transition-all duration-150 cursor-pointer relative"
             >
               <span className="text-lg">➕</span>
               <span className="font-orbitron font-bold text-xs">{t('sidebar.crear_evento')}</span>
-              <span className="ml-auto text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-semibold">
+              <span className="ml-auto text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-semibold border border-black">
                 ⭐ Premium
               </span>
             </button>
@@ -140,7 +140,7 @@ export default function Sidebar() {
           <button
             type="button"
             onClick={() => setShowConfirm(true)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-700 hover:bg-accent-light hover:text-accent-dark transition-colors duration-200 text-sm font-medium cursor-pointer"
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 border-2 border-transparent hover:border-black hover:shadow-[2px_2px_0px_#000] hover:bg-accent-light hover:text-accent-dark transition-all duration-150 cursor-pointer"
           >
             <span className="text-lg">🚪</span>
             <span className="font-orbitron font-bold text-xs">{t('sidebar.cerrar_sesion')}</span>
