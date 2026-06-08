@@ -471,7 +471,7 @@ export default function DetalleEvento() {
 
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#f8f9fa] border-t-2 border-black px-4 py-3 flex items-center justify-between shadow-[0_-4px_0px_#000]">
         <div>
-          <p className="text-2xl font-orbitron font-bold text-accent-secondary tracking-wider">{formatPrice(event.price)}</p>
+          <p className="text-2xl font-orbitron font-bold text-accent-secondary tracking-wider">{formatPrice(String(event.price))}</p>
           <p className="text-xs font-share-tech text-slate-600 uppercase">{t('evento.por_persona')}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -517,7 +517,7 @@ export default function DetalleEvento() {
                 <span className="text-4xl block mb-3">✅</span>
                 <h3 className="text-lg font-orbitron font-extrabold uppercase text-gray-900 mb-1">{t('pago.exitoso')}</h3>
                 <p className="text-sm font-share-tech text-slate-600 mb-1">{t('pago.adquiriste')} {qty} {qty === 1 ? 'entrada' : 'entradas'} {t('pago.para')} <strong className="font-orbitron">{event.title}</strong></p>
-                <p className="text-sm font-share-tech text-slate-600 mb-6">{t('pago.por')} {formatPrice(event.price)} {qty > 1 ? `c/u — ${t('pago.total')} ${formatPrice(totalPrice)}` : ''}</p>
+                <p className="text-sm font-share-tech text-slate-600 mb-6">{t('pago.por')} {formatPrice(String(event.price))} {qty > 1 ? `c/u — ${t('pago.total')} ${formatPrice(String(totalPrice))}` : ''}</p>
                 <Link to="/mis-entradas" className="cyber-btn-active border-2 border-black inline-block px-6 py-2 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000]">{t('pago.ver_entradas')}</Link>
               </div>
             ) : paymentStep === 'processing' ? (
@@ -585,7 +585,7 @@ export default function DetalleEvento() {
                   <button type="button" onClick={() => setShowPayment(false)}
                     className="cyber-btn border-2 border-black flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">{t('pago.cancelar')}</button>
                   <button type="button" onClick={() => setPaymentStep('processing')} disabled={!canUseBalance}
-                    className="cyber-btn-active border-2 border-black flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">{t('pago.pagar')} {formatPrice(totalPrice)}</button>
+                    className="cyber-btn-active border-2 border-black flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">{t('pago.pagar')} {formatPrice(String(totalPrice))}</button>
                 </div>
               </>
             )}

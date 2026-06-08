@@ -51,24 +51,6 @@ function SettingsCard({ children, title, icon }: { children: React.ReactNode; ti
   )
 }
 
-function SettingsSkeleton() {
-  return (
-    <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 relative overflow-hidden animate-pulse">
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent to-accent-secondary" />
-      {[1,2,3,4].map((i) => (
-        <div key={i} className="flex items-center gap-4 px-4 py-3.5">
-          <div className="w-10 h-10 rounded-lg bg-gray-200 border-2 border-black" />
-          <div className="flex-1 space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-1/3" />
-            <div className="h-3 bg-gray-100 rounded w-1/2" />
-          </div>
-          <div className="w-5 h-5 rounded bg-gray-200" />
-        </div>
-      ))}
-    </div>
-  )
-}
-
 export default function Configuracion() {
   const { t } = useLanguage()
   const { isPremium, user } = useAuth()

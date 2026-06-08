@@ -374,8 +374,14 @@ export default function Chat() {
 
   useEffect(() => {
     if (aiMessages.length > 0) localStorage.setItem('yulianis_chat', JSON.stringify(aiMessages))
-    aiMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    setTimeout(() => aiMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
   }, [aiMessages])
+
+  useEffect(() => {
+    if (selectedId === '__amore__') {
+      setTimeout(() => aiMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+    }
+  }, [selectedId])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -589,7 +595,7 @@ Instrucciones importantes:
                       ? 'bg-cyan-500 text-white rounded-br-none shadow-[3px_3px_0px_#000]'
                       : 'bg-[#f8f9fa] text-gray-800 rounded-bl-none shadow-[2px_2px_0px_#000]'
                   }`}>
-                    <div className="leading-relaxed whitespace-pre-wrap">{renderContent(m.content, (eid, title) => {})}</div>
+                    <div className="leading-relaxed whitespace-pre-wrap">{renderContent(m.content)}</div>
                   </div>
                 </div>
               ))}
@@ -925,7 +931,7 @@ Instrucciones importantes:
                                   <svg className="w-3 h-3 shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                                   </svg>
-                                  <span className="font-orbitron font-bold truncate">{msg.replyTo.userId === user.id ? 'Tú' : msg.replyTo.senderName}</span>
+                                  <span className="font-orbitron font-bold truncate">{user && msg.replyTo.userId === user.id ? 'Tú' : msg.replyTo.senderName}</span>
                                 </div>
                                 <span className="truncate mt-0.5 block font-share-tech">{msg.replyTo.mediaType ? (msg.replyTo.mediaType === 'video' ? 'Video' : 'Foto') : (msg.replyTo.text.split(' ').slice(0, 2).join(' ') + (msg.replyTo.text.split(' ').length > 2 ? '...' : ''))}</span>
                               </button>

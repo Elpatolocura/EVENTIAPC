@@ -10,16 +10,11 @@ const ICONS: Record<string, string> = {
   Fotografía: '📷', Literatura: '📖', Videojuegos: '🎮',
 }
 
-const predefinedCategories = [
-  'Música', 'Deportes', 'Tecnología', 'Arte',
-  'Gastronomía', 'Negocios', 'Moda', 'Cine', 'Teatro', 'Educación',
-]
-
 export default function Onboarding() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [step, setStep] = useState(0)
-  const [categories, setCategories] = useState<string[]>([])
+  const [categories] = useState<string[]>([])
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   const [ticketType, setTicketType] = useState<string>('')
   const [location, setLocation] = useState('')
