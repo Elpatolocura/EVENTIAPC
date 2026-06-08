@@ -329,10 +329,10 @@ export default function Inicio() {
                 if (n.has(t2.key)) n.delete(t2.key); else n.add(t2.key)
                 return n
               })}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs transition-all duration-150 cursor-pointer border-2 font-share-tech ${
                 selectedTypes.has(t2.key)
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-accent-light text-accent-dark border-black shadow-[2px_2px_0px_#000] font-bold'
+                  : 'bg-[#f8f9fa] text-slate-700 border-black shadow-[2px_2px_0px_#000] hover:shadow-[3px_3px_0px_#000] hover:translate-x-[-0.5px] hover:translate-y-[-0.5px]'
               }`}
             >
               {t2.label}
@@ -356,17 +356,17 @@ export default function Inicio() {
             key={f.key}
             type="button"
             onClick={() => setActiveFilter(prev => prev === f.key ? '' : f.key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all duration-150 cursor-pointer border-2 font-share-tech ${
               activeFilter === f.key
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800'
+                ? 'bg-accent-light text-accent-dark border-black shadow-[3px_3px_0px_#000] font-bold'
+                : 'bg-[#f8f9fa] text-slate-700 border-black shadow-[2px_2px_0px_#000] hover:shadow-[3px_3px_0px_#000] hover:translate-x-[-0.5px] hover:translate-y-[-0.5px]'
             }`}
           >
             {f.label}
-            <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-semibold ${
+            <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-semibold border ${
               activeFilter === f.key
-                ? 'bg-white/20 text-white'
-                : 'bg-gray-100 text-gray-500'
+                ? 'bg-white/20 text-accent-dark border-black/20'
+                : 'bg-white text-slate-600 border-black'
             }`}>
               {f.count}
             </span>
