@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 
 type ThemeContextType = {
   color: string
@@ -20,8 +20,11 @@ const colorClasses: Record<string, string> = {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [color, setColor] = useState('indigo')
-  const [theme, setTheme] = useState('light')
+  const [color, setColor] = useState(() => localStorage.getItem('themeColor') || 'indigo')
+  const [theme, setTheme] = useState(() => localStorage.getItem('themeMode') || 'light')
+
+  useEffect(() => { localStorage.setItem('themeColor', color) }, [color])
+  useEffect(() => { localStorage.setItem('themeMode', theme) }, [theme])
 
   return (
     <ThemeContext.Provider value={{ color, theme, setColor, setTheme }}>

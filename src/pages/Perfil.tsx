@@ -113,27 +113,36 @@ export default function Perfil() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="relative h-48 sm:h-56 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 overflow-hidden">
+        <div className="relative h-48 sm:h-56 bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-purple-600 overflow-hidden">
           {profile?.cover_url && <img src={profile.cover_url} alt="" className="w-full h-full object-cover" />}
           <div className="absolute inset-0 bg-black/10" />
         </div>
 
         <div className="relative px-6 pb-6">
           <div className="flex flex-col sm:flex-row sm:items-end -mt-14 sm:-mt-16 gap-4 sm:gap-6">
-            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-white bg-indigo-100 flex items-center justify-center text-4xl sm:text-5xl text-indigo-500 shadow-md shrink-0 overflow-hidden">
+            <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-black bg-indigo-100 flex items-center justify-center text-4xl sm:text-5xl text-indigo-500 shadow-md shrink-0 overflow-hidden">
               {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> : '👤'}
+              {isOwnProfile && (
+                <button type="button" onClick={() => navigate('/configuracion/editar-perfil')}
+                  className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-cyan-500 border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center hover:bg-cyan-400 transition-colors cursor-pointer">
+                  <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+              )}
             </div>
             <div className="flex-1 pt-2 sm:pt-0 sm:pb-1">
               <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-gray-900">{profile?.nombre || (isOwnProfile ? user?.email?.split('@')[0] : t('perfil.usuario'))}</h1>
+                <h1 className="text-2xl font-orbitron font-extrabold uppercase text-gray-900">{profile?.nombre || (isOwnProfile ? user?.email?.split('@')[0] : t('perfil.usuario'))}</h1>
                 {isOwnProfile ? (
                   <button type="button" onClick={() => navigate('/configuracion/editar-perfil')}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 text-xs font-medium text-white hover:bg-indigo-700 transition-colors cursor-pointer">
+                    className="px-4 py-2 rounded-xl cyber-btn font-orbitron text-xs font-medium cursor-pointer">
                     {t('perfil.editar')}
                   </button>
                 ) : (
                   <button type="button" onClick={handleFollowToggle} disabled={followLoading}
-                    className={`px-4 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 ${isFollowing ? 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+                    className={`px-4 py-2 rounded-xl font-orbitron text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 ${isFollowing ? 'cyber-btn' : 'cyber-btn-active'}`}>
                     {followLoading ? (
                       <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                     ) : isFollowing ? 'Siguiendo' : t('perfil.seguir')}
@@ -150,17 +159,20 @@ export default function Perfil() {
             </div>
           </div>
 
-          <div className="flex items-center gap-6 mt-5 pb-5 border-b border-gray-100">
+          <div className="flex items-stretch gap-4 mt-5 pb-5 border-b border-gray-100">
             <button type="button" onClick={() => setShowFollowers(true)}
-              className="text-center hover:bg-gray-50 px-3 py-1.5 rounded-xl transition-colors cursor-pointer">
+              className="flex-1 bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 relative overflow-hidden text-center hover:bg-gray-100 transition-colors cursor-pointer">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-purple-600" />
               <p className="text-lg font-bold text-gray-900">{followers.length}</p>
               <p className="text-xs text-gray-500">{t('perfil.seguidores')}</p>
             </button>
-            <div className="text-center">
+            <div className="flex-1 bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 relative overflow-hidden text-center">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-purple-600" />
               <p className="text-lg font-bold text-gray-900">{eventsCreated}</p>
               <p className="text-xs text-gray-500">{t('perfil.eventos_creados')}</p>
             </div>
-            <div className="text-center">
+            <div className="flex-1 bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 relative overflow-hidden text-center">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-purple-600" />
               <p className="text-lg font-bold text-gray-900">{eventsAttended}</p>
               <p className="text-xs text-gray-500">{t('perfil.eventos_asistidos')}</p>
             </div>
@@ -169,13 +181,13 @@ export default function Perfil() {
           <div className="mt-5 space-y-4">
             <div>
               <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">{t('perfil.biografia')}</h2>
-              <p className="text-sm text-gray-700 leading-relaxed">{profile?.biografia || t('perfil.sin_biografia')}</p>
+              <p className="text-sm font-share-tech text-slate-600 leading-relaxed">{profile?.biografia || t('perfil.sin_biografia')}</p>
             </div>
             <div>
               <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{t('perfil.categorias')}</h2>
               <div className="flex flex-wrap gap-2">
                 {(profile?.categorias || ['Música', 'Tecnología']).map((cat: string) => (
-                  <span key={cat} className="px-3 py-1.5 rounded-full bg-indigo-50 text-xs font-medium text-indigo-600">{cat}</span>
+                  <span key={cat} className="px-3 py-1.5 rounded-full bg-[#f8f9fa] border-2 border-black shadow-[2px_2px_0px_#000] text-xs font-medium text-gray-700">{cat}</span>
                 ))}
               </div>
             </div>
@@ -183,19 +195,18 @@ export default function Perfil() {
         </div>
       </div>
 
-      {/* Menú rápido para móviles (ya que el Sidebar está oculto) */}
       {isOwnProfile && (
         <div className="mt-4 grid grid-cols-2 gap-3 md:hidden">
-          <button type="button" onClick={() => navigate('/mis-eventos')} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center gap-2 font-medium text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          <button type="button" onClick={() => navigate('/mis-eventos')} className="p-3 cyber-btn font-orbitron rounded-xl flex items-center justify-center gap-2 text-sm cursor-pointer">
             <span>📅</span> Mis Eventos
           </button>
-          <button type="button" onClick={() => navigate('/favoritos')} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center gap-2 font-medium text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          <button type="button" onClick={() => navigate('/favoritos')} className="p-3 cyber-btn font-orbitron rounded-xl flex items-center justify-center gap-2 text-sm cursor-pointer">
             <span>⭐</span> Favoritos
           </button>
-          <button type="button" onClick={() => navigate('/balance')} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center gap-2 font-medium text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          <button type="button" onClick={() => navigate('/balance')} className="p-3 cyber-btn font-orbitron rounded-xl flex items-center justify-center gap-2 text-sm cursor-pointer">
             <span>💰</span> Balance
           </button>
-          <button type="button" onClick={() => navigate('/configuracion')} className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center justify-center gap-2 font-medium text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+          <button type="button" onClick={() => navigate('/configuracion')} className="p-3 cyber-btn font-orbitron rounded-xl flex items-center justify-center gap-2 text-sm cursor-pointer">
             <span>⚙️</span> Configuración
           </button>
         </div>
@@ -203,9 +214,9 @@ export default function Perfil() {
 
       {showFollowers && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col border-2 border-black shadow-[4px_4px_0px_#000]">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">{t('perfil.seguidores')}</h3>
+              <h3 className="text-lg font-orbitron font-bold text-gray-900">{t('perfil.seguidores')}</h3>
               <button type="button" onClick={() => setShowFollowers(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -216,25 +227,28 @@ export default function Perfil() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('perfil.buscar_seguidor')}
-                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                  className="w-full pl-10 pr-4 py-2 rounded-xl cyber-input text-sm" />
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2">
               {filtered.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-8">{t('perfil.no_seguidores')}</p>
+                <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 relative overflow-hidden m-2">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-purple-600" />
+                  <p className="text-sm text-gray-500 text-center py-4">{t('perfil.no_seguidores')}</p>
+                </div>
               ) : (
                 <div className="space-y-0.5">
                   {filtered.map((f) => (
                     <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-lg shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 rounded-full border-2 border-black bg-indigo-100 flex items-center justify-center text-lg shrink-0 overflow-hidden">
                         {followerProfiles[f.follower_id]?.avatar_url ? <img src={followerProfiles[f.follower_id].avatar_url} alt="" className="w-full h-full object-cover" /> : '👤'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{followerProfiles[f.follower_id]?.nombre || t('perfil.usuario')}</p>
+                        <p className="text-sm font-orbitron font-bold text-gray-900">{followerProfiles[f.follower_id]?.nombre || t('perfil.usuario')}</p>
                         <p className="text-xs text-gray-400">@{followerProfiles[f.follower_id]?.nombre?.toLowerCase().replace(/\s/g, '') || 'usuario'}</p>
                       </div>
                       <button type="button" onClick={() => handleFollowUser(f.follower_id)}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${followingMap[f.follower_id] ? 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600' : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
+                        className={`px-4 py-1.5 rounded-lg text-xs font-orbitron font-medium transition-colors cursor-pointer ${followingMap[f.follower_id] ? 'cyber-btn' : 'cyber-btn-active'}`}>
                         {followingMap[f.follower_id] ? 'Siguiendo' : t('perfil.seguir')}
                       </button>
                     </div>

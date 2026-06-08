@@ -24,20 +24,20 @@ function renderContent(text: string, navigate: ReturnType<typeof useNavigate>, o
     if (seg.type === 'card' && seg.cardData && seg.cardData.length >= 2) {
       const [eventId, title, date, city, price] = seg.cardData
       return (
-        <div key={segIdx} className="border border-gray-200 rounded-xl p-3 my-2 bg-white shadow-sm">
-          <h4 className="font-semibold text-sm text-gray-900 mb-1">{title}</h4>
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500 mb-2">
+        <div key={segIdx} className="border-2 border-black rounded p-3 my-2 bg-[#f8f9fa] shadow-[2px_2px_0px_#000]">
+          <h4 className="font-orbitron font-bold text-sm text-gray-900 mb-1">{title}</h4>
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-500 mb-2 font-share-tech">
             {date && <span>📅 {date}</span>}
             {city && <span>📍 {city}</span>}
             {price && <span>💰 {formatPrice(price)}</span>}
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={() => navigate(`/evento/${eventId}`)}
-              className="px-3 py-1 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 text-xs font-medium cursor-pointer">
+              className="cyber-btn text-xs">
               Ver más
             </button>
             <button type="button" onClick={() => onBuyTicket ? onBuyTicket(eventId, title) : navigate(`/evento/${eventId}`)}
-              className="px-3 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 text-xs font-medium cursor-pointer">
+              className="cyber-btn-active text-xs">
               Comprar entrada
             </button>
           </div>
@@ -207,23 +207,24 @@ Instrucciones importantes:
 
   if (!user) {
     return (
-      <div className="max-w-4xl mx-auto h-[calc(100vh-4rem)] flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-pink-500 to-rose-500 text-white flex items-center gap-3">
+      <div className="max-w-4xl mx-auto h-[calc(100vh-4rem)] flex flex-col bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] overflow-hidden">
+        <div className="p-4 border-b-2 border-black bg-gradient-to-r from-cyan-600 to-fuchsia-700 text-white flex items-center gap-3 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500" />
           <span className="text-3xl">✨</span>
           <div>
-            <h1 className="font-bold text-lg">YULIANIS</h1>
-            <p className="text-xs text-pink-100 font-medium">Asistente IA</p>
+            <h1 className="font-orbitron font-bold text-lg">YULIANIS</h1>
+            <p className="font-share-tech text-xs text-cyan-200 font-medium">Asistente IA</p>
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center max-w-md">
             <span className="text-5xl block mb-4">🔒</span>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Inicia sesión para usar YULIANIS</h2>
-            <p className="text-gray-500 mb-6 text-sm">YULIANIS es tu asistente inteligente de Eventia. Inicia sesión para hablar con ella.</p>
+            <h2 className="font-orbitron font-extrabold uppercase text-xl text-gray-900 mb-2">Inicia sesión para usar YULIANIS</h2>
+            <p className="font-share-tech text-slate-500 mb-6 text-sm">YULIANIS es tu asistente inteligente de Eventia. Inicia sesión para hablar con ella.</p>
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-pink-500/25 transition-all cursor-pointer"
+              className="cyber-btn-active"
             >
               Iniciar sesión
             </button>
@@ -234,22 +235,23 @@ Instrucciones importantes:
   }
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-4rem)] flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-pink-500 to-rose-500 text-white flex items-center gap-3">
+    <div className="max-w-4xl mx-auto h-[calc(100vh-4rem)] flex flex-col bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] overflow-hidden">
+      <div className="p-4 border-b-2 border-black bg-gradient-to-r from-cyan-600 to-fuchsia-700 text-white flex items-center gap-3 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500" />
         <span className="text-3xl">✨</span>
         <div>
-          <h1 className="font-bold text-lg">YULIANIS</h1>
-          <p className="text-xs text-pink-100 font-medium">En línea</p>
+          <h1 className="font-orbitron font-bold text-lg">YULIANIS</h1>
+          <p className="font-share-tech text-xs text-cyan-200 font-medium">En línea</p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
         {messages.map(m => (
           <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[70%] rounded-2xl px-5 py-3 text-sm ${
+            <div className={`max-w-[70%] rounded-2xl px-5 py-3 text-sm border-2 border-black ${
               m.role === 'user'
-                ? 'bg-indigo-600 text-white rounded-br-none shadow-md shadow-indigo-600/20'
-                : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none shadow-sm'
+                ? 'bg-cyan-500 text-white rounded-br-none shadow-[3px_3px_0px_#000]'
+                : 'bg-[#f8f9fa] text-gray-800 rounded-bl-none shadow-[2px_2px_0px_#000]'
             }`}>
               <div className="leading-relaxed whitespace-pre-wrap">{renderContent(m.content, navigate, (eid, title) => { setBuyModal({ eventId: eid, title }); setBuyQty(1); setBought(false) })}</div>
             </div>
@@ -258,11 +260,11 @@ Instrucciones importantes:
         <div ref={messagesEndRef} />
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-none shadow-sm px-5 py-3">
+            <div className="bg-[#f8f9fa] text-gray-800 border-2 border-black rounded-2xl rounded-bl-none shadow-[2px_2px_0px_#000] px-5 py-3">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <span className="w-2 h-2 bg-fuchsia-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 bg-fuchsia-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 bg-fuchsia-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
@@ -270,24 +272,25 @@ Instrucciones importantes:
       </div>
 
       {buyModal && (
-        <div className="p-4 bg-white border-t border-gray-100">
+        <div className="p-4 bg-[#f8f9fa] border-t-2 border-black relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500" />
           {bought ? (
-            <p className="text-sm text-green-600 text-center font-medium">✅ ¡Entrada{ buyQty > 1 ? 's' : '' } comprada{ buyQty > 1 ? 's' : '' }!</p>
+            <p className="font-share-tech text-sm text-green-600 text-center font-orbitron font-bold">✅ ¡Entrada{ buyQty > 1 ? 's' : '' } comprada{ buyQty > 1 ? 's' : '' }!</p>
           ) : (
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{buyModal.title}</p>
-                <p className="text-xs text-gray-500">Cantidad de entradas</p>
+                <p className="font-orbitron font-bold text-sm text-gray-900 truncate">{buyModal.title}</p>
+                <p className="font-share-tech text-xs text-slate-500">Cantidad de entradas</p>
               </div>
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => setBuyQty(Math.max(1, buyQty - 1))} disabled={buyQty <= 1}
-                  className="w-8 h-8 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer text-lg font-medium">−</button>
-                <span className="w-8 text-center text-sm font-semibold text-gray-900">{buyQty}</span>
+                  className="w-8 h-8 rounded-lg border-2 border-black text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer text-lg font-medium shadow-[1px_1px_0px_#000]">−</button>
+                <span className="w-8 text-center font-orbitron text-sm font-bold text-gray-900">{buyQty}</span>
                 <button type="button" onClick={() => setBuyQty(Math.min(10, buyQty + 1))} disabled={buyQty >= 10}
-                  className="w-8 h-8 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer text-lg font-medium">+</button>
+                  className="w-8 h-8 rounded-lg border-2 border-black text-gray-600 hover:bg-gray-50 disabled:opacity-30 cursor-pointer text-lg font-medium shadow-[1px_1px_0px_#000]">+</button>
               </div>
               <button type="button" onClick={handleBuyTicket} disabled={buying}
-                className="px-5 py-2.5 rounded-xl bg-green-600 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50 cursor-pointer whitespace-nowrap">
+                className="cyber-btn-active whitespace-nowrap">
                 {buying ? 'Comprando...' : `Comprar ${buyQty > 1 ? buyQty : ''}`.trim()}
               </button>
               <button type="button" onClick={() => setBuyModal(null)}
@@ -297,20 +300,20 @@ Instrucciones importantes:
         </div>
       )}
 
-      <form onSubmit={handleSend} className="p-4 bg-white border-t border-gray-100">
+      <form onSubmit={handleSend} className="p-4 bg-[#f8f9fa] border-t-2 border-black">
         <div className="relative flex items-center">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Escríbele a YULIANIS..."
-            className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-pink-500 focus:border-pink-500 block pl-4 pr-12 py-3.5 transition-colors"
+            className="cyber-input w-full pl-4 pr-12 py-3.5"
             onFocus={() => { lastActivity.current = Date.now() }}
           />
           <button
             type="submit"
             disabled={!input.trim() || loading}
-            className="absolute right-2 p-2 text-white bg-pink-600 rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:hover:bg-pink-600 transition-colors cursor-pointer"
+            className="absolute right-2 cyber-btn-active"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

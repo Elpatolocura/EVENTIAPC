@@ -33,7 +33,6 @@ export default function Inicio() {
     getAllEvents().then(setEvents)
   }, [])
 
-  // Mostrar banner de geolocalización tras 1.5 s si no se ha pedido antes
   useEffect(() => {
     const alreadyAsked = localStorage.getItem('eventia_location_asked')
     if (!alreadyAsked) {
@@ -153,7 +152,6 @@ export default function Inicio() {
 
   const hoyEvents = allEvents.filter((e) => e.date && isSameDay(e.date, today))
   const mananaEvents = allEvents.filter((e) => e.date && isSameDay(e.date, tomorrow))
-  // "Cerca de mí" usa la ciudad obtenida por GPS; filtra eventos que compartan esa ciudad
   const cercaEvents = userCity
     ? allEvents.filter((e) => e.location?.toLowerCase().includes(userCity.toLowerCase()))
     : []
@@ -216,6 +214,12 @@ export default function Inicio() {
 
   const userName = profile?.nombre || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario'
 
+  const sectionTitle = activeFilter === 'populares' ? t('inicio.destacados') :
+    activeFilter === 'hoy' ? 'Hoy' :
+    activeFilter === 'mañana' ? 'Mañana' :
+    activeFilter === 'cerca' ? `📍 ${userCity}` :
+    'Próximos eventos'
+
   return (
     <div className="max-w-5xl mx-auto">
       {showStickyHeader && (
@@ -229,11 +233,11 @@ export default function Inicio() {
                 </svg>
                 <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
                   placeholder={t('inicio.buscar')}
-                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                  className="cyber-input w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
               </div>
               {hasActiveFilters && (
                 <button type="button" onClick={clearFilters}
-                  className="shrink-0 px-2.5 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
+                  className="shrink-0 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer cyber-btn-active border-2 border-black">
                   {t('inicio.limpiar')}
                 </button>
               )}
@@ -259,11 +263,11 @@ export default function Inicio() {
           </div>
           <div className="flex gap-2 shrink-0">
             <button type="button" onClick={dismissLocationBanner}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer">
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer cyber-btn border-2 border-black">
               Ahora no
             </button>
             <button type="button" onClick={requestLocation}
-              className="px-3 py-1.5 rounded-lg bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors cursor-pointer">
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer cyber-btn-active border-2 border-black">
               Activar
             </button>
           </div>
@@ -273,20 +277,20 @@ export default function Inicio() {
       {/* ── Indicador de carga de GPS ── */}
       {locationStatus === 'requesting' && (
         <div className="mb-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-50 border border-indigo-100">
-          <svg className="w-4 h-4 animate-spin text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 animate-spin text-cyan-500 shrink-0" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          <p className="text-xs text-indigo-700 font-medium">Obteniendo tu ubicación...</p>
+          <p className="text-xs text-cyan-700 font-medium">Obteniendo tu ubicación...</p>
         </div>
       )}
 
       <div className={`${showStickyHeader ? 'pt-[72px] ' : ''}mb-8`}>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl text-gray-900 font-orbitron font-extrabold uppercase">
           {t('inicio.bienvenido')}, {userName} 👋
         </h1>
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-1">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
@@ -306,12 +310,12 @@ export default function Inicio() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t('inicio.buscar')}
-          className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          className="cyber-input w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
         />
       </div>
 
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">{t('inicio.tipo')}:</span>
+        <span className="font-share-tech text-slate-600 uppercase text-xs">{t('inicio.tipo')}:</span>
         <div className="flex gap-1.5">
           {[
             { key: 'Gratis', label: t('inicio.gratis') },
@@ -339,7 +343,7 @@ export default function Inicio() {
           <button
             type="button"
             onClick={clearFilters}
-            className="ml-auto px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
+            className="ml-auto px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 cyber-btn-active border-2 border-black"
           >
             {t('inicio.limpiar')}
           </button>
@@ -379,92 +383,106 @@ export default function Inicio() {
           })}
             className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
               selectedCategories.has(cat)
-                ? 'bg-indigo-100 text-indigo-700'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                ? 'cyber-btn-active'
+                : 'cyber-btn'
             }`}>
             {cat}
           </button>
         ))}
       </div>
 
+      <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 relative overflow-hidden mb-6">
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-400 to-fuchsia-400"></div>
+        <h2 className="font-orbitron font-semibold uppercase text-lg">{sectionTitle}</h2>
+      </div>
+
       {displayEvents.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
-          <span className="text-4xl block mb-3">🔍</span>
-          <p className="text-sm text-gray-500">{t('inicio.no_resultados')}</p>
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              className="mt-3 text-sm text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer"
-            >
-              {t('inicio.limpiar_busqueda')}
-            </button>
-          )}
+        <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-400 to-fuchsia-400"></div>
+          <div className="text-center">
+            <span className="text-4xl block mb-3">🔍</span>
+            <p className="text-sm text-gray-500">{t('inicio.no_resultados')}</p>
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="mt-3 text-sm font-medium cursor-pointer cyber-btn-active border-2 border-black"
+              >
+                {t('inicio.limpiar_busqueda')}
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {displayEvents.map((event: any) => (
-                  <div
-                    key={event.id}
-                    className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group cursor-pointer relative"
-                  >
-                    <button type="button" onClick={(e) => toggleFav(event.id, e)}
-                      className={`absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
-                        favorites.has(event.id) ? 'bg-red-500 text-white' : 'bg-black/20 text-white/80 hover:bg-black/40 hover:text-white'
-                      }`}>
-                      <svg className="w-3.5 h-3.5" fill={favorites.has(event.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                    </button>
-                    <Link to={`/evento/${event.id}`}>
-                      <div className="h-28 relative overflow-hidden">
-                        <LazyImage
-                          src={event.cover}
-                          alt={event.title}
-                          fallbackGradient="from-indigo-500 to-fuchsia-500"
-                          fallbackEmoji="🎉"
-                        />
-                      </div>
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                        {event.title}
-                      </h3>
-                      <span className="shrink-0 px-2 py-0.5 rounded-full bg-gray-100 text-[11px] font-medium text-gray-500">
-                        {event.cat}
-                      </span>
-                      <span className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                        event.type === 'Gratis' ? 'bg-green-100 text-green-700' :
-                        event.type === 'VIP' ? 'bg-amber-100 text-amber-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
-                        {event.type}
-                      </span>
+            <div
+              key={event.id}
+              className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] overflow-hidden group cursor-pointer relative cyber-card-regular"
+            >
+              <div className="absolute inset-0 cyber-grid pointer-events-none opacity-20 z-0"></div>
+              <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-accent to-transparent opacity-50 z-10"></div>
+              <div className="absolute bottom-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-accent-secondary to-transparent opacity-50 z-10"></div>
+              <button type="button" onClick={(e) => toggleFav(event.id, e)}
+                className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all cursor-pointer ${
+                  favorites.has(event.id)
+                    ? 'bg-fuchsia-600 border-fuchsia-300 text-white shadow-[0_0_8px_rgba(217,70,239,0.6)] scale-110'
+                    : 'bg-white/80 border-accent text-accent hover:bg-accent hover:text-white hover:shadow-[0_0_8px_rgba(6,182,212,0.6)]'
+                }`}>
+                <svg className="w-4 h-4" fill={favorites.has(event.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </button>
+              <Link to={`/evento/${event.id}`}>
+                <div className="h-32 relative overflow-hidden cyber-scanlines border-b border-slate-200">
+                  <LazyImage
+                    src={event.cover || ''}
+                    alt={event.title}
+                    fallbackGradient="from-accent to-accent-secondary"
+                    fallbackEmoji="🎉"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-white/10 via-transparent to-black/10 z-10 pointer-events-none"></div>
+                </div>
+                <div className="p-4 z-10 relative">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="font-share-tech text-[10px] uppercase tracking-widest px-2 py-0.5 border border-purple-300 bg-purple-50 text-purple-700 rounded">
+                      [{event.cat}]
+                    </span>
+                    <span className={`font-share-tech text-[10px] px-2 py-0.5 border rounded uppercase ${
+                      event.type === 'Gratis' ? 'bg-emerald-100 border-emerald-400 text-emerald-700' :
+                      event.type === 'VIP' ? 'bg-fuchsia-100 border-fuchsia-400 text-fuchsia-700' :
+                      'bg-accent-light border-accent-light text-accent-dark'
+                    }`}>
+                      {event.type}
+                    </span>
+                  </div>
+                  <h3 className="font-orbitron font-bold text-sm text-slate-800 line-clamp-1 group-hover:text-accent-secondary transition-colors uppercase tracking-wider mb-3">
+                    {event.title}
+                  </h3>
+                  <div className="space-y-1.5 font-share-tech text-xs text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <span className="text-accent-secondary font-bold">&gt;&gt; FECHA:</span>
+                      <span className="text-slate-800">{event.date}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-2">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      {event.date}
-                      <span className="mx-1 text-gray-300">|</span>
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {event.location}
-                    </div>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                      <p className="text-sm font-bold text-gray-900">{formatPrice(event.price)}</p>
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        {event.attendees}
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-accent font-bold">&gt;&gt; LUGAR:</span>
+                      <span className="text-slate-800 truncate max-w-[180px]">{event.location}</span>
                     </div>
                   </div>
-                </Link>
-              </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200">
+                    <p className="text-sm font-orbitron font-bold text-accent-secondary tracking-wider">
+                      {event.price === 'Gratis' || event.price === 0 ? 'ENTRADA LIBRE' : formatPrice(event.price)}
+                    </p>
+                    <div className="flex items-center gap-1 text-xs font-share-tech text-slate-500">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {event.attendees}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </div>
             )
           )}
         </div>
@@ -474,7 +492,7 @@ export default function Inicio() {
         <button
           type="button"
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 w-12 h-12 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 transition-all hover:scale-110 cursor-pointer z-50"
+          className="fixed bottom-6 right-6 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 cursor-pointer z-50 cyber-btn-active border-2 border-black"
           aria-label="Volver al inicio"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,23 +1,26 @@
 import { useState, useRef, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
-import { getChatMessages, sendChatMessage, deleteChatMessage, hideMessageForUser, getHiddenMessageIds, getTodayMessagesCount, getUnreadChatCounts, markChatRead, toggleChatMute, getMutedChats, toggleChatPin, getPinnedChats } from '../lib/db'
+import { getChatMessages, sendChatMessage, uploadChatMedia, deleteChatMessage, hideMessageForUser, getHiddenMessageIds, getUnreadChatCounts, markChatRead, toggleChatMute, getMutedChats, toggleChatPin, getPinnedChats, getAllEvents } from '../lib/db'
+import { chatWithAI } from '../lib/ai'
+import { formatPrice } from '../lib/price'
 import { supabase } from '../lib/supabase'
 
 const emojis = ['😀','😎','🔥','❤️','🎉','👍','😢','😂','😍','🎶','💪','🙌','✨','🥳','💯','👏','😅','🤔','🎸','🍕','🎭','📸','🎤','💃','🕺','🌮','🍷','🎪','🤩','💫']
 
 export default function Chat() {
   const { t } = useLanguage()
-  const { user, isPremium } = useAuth()
+  const { user } = useAuth()
   const { eventId } = useParams<{ eventId: string }>()
+  const navigate = useNavigate()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [chatList, setChatList] = useState<any[]>([])
   const [newMsg, setNewMsg] = useState('')
   const [showEmoji, setShowEmoji] = useState(false)
   const [showAttach, setShowAttach] = useState(false)
   const [showCustomize, setShowCustomize] = useState(false)
-  const [mediaPreview, setMediaPreview] = useState<{ url: string; type: string } | null>(null)
+  const [mediaPreview, setMediaPreview] = useState<{ url: string; type: string; file: File } | null>(null)
   const [chatBg, setChatBg] = useState('bg-gray-50')
   const [myBubble, setMyBubble] = useState('indigo')
   const [otherBubble, setOtherBubble] = useState('gray')
@@ -37,20 +40,26 @@ export default function Chat() {
 
   const [sendingReport, setSendingReport] = useState(false)
   const [menuMsgId, setMenuMsgId] = useState<number | null>(null)
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
+  const [highlighted, setHighlighted] = useState<{ id: number; key: number } | null>(null)
+  const [expandedMsgs, setExpandedMsgs] = useState<Set<number>>(new Set())
   const [replyingTo, setReplyingTo] = useState<{ id: number; text: string } | null>(null)
-  const [msgs, setMsgs] = useState<{ id: number; from: string; text: string; time: string; senderName: string; senderAvatar: string | null; replyTo?: { id: number; text: string }; media?: { url: string; type: string } }[]>([])
+  const [msgs, setMsgs] = useState<{ id: number; from: string; text: string; time: string; senderName: string; senderAvatar: string | null; replyTo?: { id: number; text: string; senderName: string; userId: string; mediaType?: string }; media?: { url: string; type: string } }[]>([])
   const [fullscreenMedia, setFullscreenMedia] = useState<{ url: string; type: string } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; action: 'me' | 'all' } | null>(null)
   const [attendeeCount, setAttendeeCount] = useState(0)
   const [eventDate, setEventDate] = useState('')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
-  const [dailyCount, setDailyCount] = useState(0)
-  const [limitMsg, setLimitMsg] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
   const [toastMsg, setToastMsg] = useState('')
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [mutedChats, setMutedChats] = useState<Set<string>>(new Set())
+  const [aiMessages, setAiMessages] = useState<any[]>(() => { try { const stored = localStorage.getItem('yulianis_chat'); return stored ? JSON.parse(stored) : [{ id: 1, role: 'ai', content: '¡Hola! Soy YULIANIS, tu asistente inteligente de Eventia. Puedo consultar eventos, ayudarte a usar la plataforma o resolver tus dudas. ¿En qué te ayudo?' }] } catch { return [{ id: 1, role: 'ai', content: '¡Hola! Soy YULIANIS, tu asistente inteligente de Eventia. Puedo consultar eventos, ayudarte a usar la plataforma o resolver tus dudas. ¿En qué te ayudo?' }] } })
+  const [aiInput, setAiInput] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiEventsContext, setAiEventsContext] = useState('')
+  const aiLastActivity = useRef(Date.now())
+  const aiMessagesEndRef = useRef<HTMLDivElement>(null)
   const [pinnedChats, setPinnedChats] = useState<Set<string>>(new Set())
   const mutedRef = useRef(new Set<string>())
   const pinnedRef = useRef(new Set<string>())
@@ -59,14 +68,15 @@ export default function Chat() {
   const messagesContainerRef = useRef<HTMLDivElement | null>(null)
   const chatIdsRef = useRef<string[]>([])
 
+  const amoreChat = { id: '__amore__', event: 'Amoré', cover: '', lastMsg: '', time: '' }
+  const baseChatList = [amoreChat, ...chatList]
   const filteredChatList = searchQuery
-    ? chatList.filter((c: any) => c.event.toLowerCase().includes(searchQuery.toLowerCase()))
-    : chatList
+    ? baseChatList.filter((c: any) => c.event.toLowerCase().includes(searchQuery.toLowerCase()))
+    : baseChatList
   const selected = filteredChatList.find((c: any) => c.id === selectedId)
 
   useEffect(() => {
     if (!user) return
-    if (!isPremium) getTodayMessagesCount(user.id).then(setDailyCount)
     getMutedChats(user.id).then(s => { mutedRef.current = s; setMutedChats(s) })
     getPinnedChats(user.id).then(s => { pinnedRef.current = s; setPinnedChats(s) })
     Promise.all([
@@ -264,6 +274,13 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [msgs])
 
+  useEffect(() => {
+    if (highlighted) {
+      const timer = setTimeout(() => setHighlighted(null), 2500)
+      return () => clearTimeout(timer)
+    }
+  }, [highlighted])
+
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const autoResize = () => {
@@ -275,27 +292,20 @@ export default function Chat() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMsg.trim() || !selectedId || !user) return
+    if ((!newMsg.trim() && !mediaPreview) || !selectedId || !user) return
     const text = newMsg.trim()
 
-    if (!isPremium) {
-      const lineCount = text.split('\n').length
-      if (lineCount > 40) {
-        setLimitMsg(`Máximo 40 líneas por mensaje (tienes ${lineCount})`)
-        return
-      }
-      const count = await getTodayMessagesCount(user.id)
-      setDailyCount(count)
-      if (count >= 40) {
-        setLimitMsg('Límite diario alcanzado (40 mensajes). Actualiza a Premium para mensajes ilimitados.')
-        return
-      }
+    let media: { url: string; type: string } | undefined
+    if (mediaPreview) {
+      const uploadedUrl = await uploadChatMedia(mediaPreview.file)
+      if (uploadedUrl) media = { url: uploadedUrl, type: mediaPreview.type }
+      setMediaPreview(null)
     }
 
-    setLimitMsg('')
     setNewMsg('')
+    const replyId = replyingTo?.id
     setReplyingTo(null)
-    await sendChatMessage({ event_id: selectedId, user_id: user.id, text })
+    await sendChatMessage({ event_id: selectedId, user_id: user.id, text, reply_to: replyId, ...(media ? { media } : {}) })
     setChatList(prev => {
       const idx = prev.findIndex((c: any) => c.id === selectedId)
       if (idx === -1) return prev
@@ -310,7 +320,6 @@ export default function Chat() {
       next.unshift(updated)
       return next
     })
-    if (!isPremium) setDailyCount(c => c + 1)
     const [messages, hiddenIds] = await Promise.all([
       getChatMessages(selectedId),
       getHiddenMessageIds(user.id),
@@ -320,7 +329,8 @@ export default function Chat() {
       .map((m: any) => {
       const isMe = m.user_id === user.id
       const time = new Date(m.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
-      return { id: m.id, from: isMe ? 'me' : 'them', text: m.text, time, senderName: m.sender?.nombre || 'Usuario', senderAvatar: m.sender?.avatar_url || null }
+      const replyTo = m.reply_to ? { id: m.reply_to, text: messages.find((r: any) => r.id === m.reply_to)?.text || '', senderName: messages.find((r: any) => r.id === m.reply_to)?.sender?.nombre || 'Usuario', userId: messages.find((r: any) => r.id === m.reply_to)?.user_id || '', mediaType: messages.find((r: any) => r.id === m.reply_to)?.media?.type } : undefined
+      return { id: m.id, from: isMe ? 'me' : 'them', text: m.text, time, senderName: m.sender?.nombre || 'Usuario', senderAvatar: m.sender?.avatar_url || null, replyTo, media: m.media || undefined }
     })
     setMsgs(mapped)
   }
@@ -342,50 +352,165 @@ export default function Chat() {
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (!file) return
+      if (file.size > 10 * 1024 * 1024) { showToast('El archivo es demasiado grande (máx 10 MB)'); return }
       const url = URL.createObjectURL(file)
-      setMediaPreview({ url, type: file.type.startsWith('video/') ? 'video' : 'image' })
+      setMediaPreview({ url, type: file.type.startsWith('video/') ? 'video' : 'image', file })
     }
     input.click()
   }
 
-  return (
-    <div className="h-[calc(100vh-4rem)] flex gap-0 -m-8">
-      <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} bg-white border-r border-gray-200 flex flex-col shrink-0 transition-all duration-200`}>
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-2">
-          {!sidebarCollapsed && (
-            <div className="flex-1 min-w-0">
-              <h2 className="text-sm font-semibold text-gray-900">{t('chat.titulo')}</h2>
-              <p className="text-xs text-gray-500 mt-0.5">{chatList.length} {t('chat.conversaciones')}</p>
-            </div>
-          )}
-          <button type="button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer shrink-0">
-            <svg className={`w-4 h-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-            </svg>
-          </button>
-        </div>
+  useEffect(() => {
+    getAllEvents().then((evts: any[]) => {
+      if (evts.length > 0) {
+        const list = evts.slice(0, 20).map((e: any) =>
+          `- ${e.title} (ID:${e.id}) — ${e.city || 'varias ciudades'} — ${e.date || 'próximamente'} — ${e.type === 'Gratis' ? 'Gratis' : e.price || 'consultar'}`
+        ).join('\n')
+        setAiEventsContext(`Estos son los eventos disponibles actualmente:\n${list}\n\nLos usuarios pueden crear eventos, comprar entradas, chatear con organizadores, seguir a otros usuarios, y gestionar su perfil.`)
+      } else {
+        setAiEventsContext('No hay eventos disponibles actualmente. Los usuarios pueden crear eventos desde la sección "Crear Evento" en el menú lateral.')
+      }
+    })
+  }, [])
 
-        {!sidebarCollapsed && (
-          <div className="px-4 py-2 border-b border-gray-100">
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar conversación..."
-                className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-gray-50"
-              />
+  useEffect(() => {
+    if (aiMessages.length > 0) localStorage.setItem('yulianis_chat', JSON.stringify(aiMessages))
+    aiMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [aiMessages])
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - aiLastActivity.current
+      if (elapsed >= 120000 && !aiLoading) {
+        const last = aiMessages[aiMessages.length - 1]
+        if (last && last.role === 'ai' && last.content.includes('¿Quieres finalizar')) return
+        setAiMessages(prev => [...prev, { id: Date.now(), role: 'ai', content: '😊 Llevas un tiempo sin escribir. ¿Quieres finalizar la conversación o necesitas ayuda con algo más?' }])
+        aiLastActivity.current = Date.now()
+      }
+    }, 30000)
+    return () => clearInterval(timer)
+  }, [aiMessages, aiLoading])
+
+  const handleAiSend = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!aiInput.trim() || aiLoading) return
+    aiLastActivity.current = Date.now()
+    const userMsg = { id: Date.now(), role: 'user' as const, content: aiInput.trim() }
+    setAiMessages(prev => [...prev, userMsg])
+    setAiInput('')
+    setAiLoading(true)
+    try {
+      const history = [...aiMessages.slice(-10), userMsg]
+      const systemPrompt = `Eres YULIANIS, la asistente virtual de Eventia (plataforma de eventos). Tu personalidad es amable, entusiasta y servicial.
+
+INFORMACIÓN DE LA PLATAFORMA:
+- Los usuarios pueden: crear eventos, comprar/vender entradas, chatear en eventos, seguir usuarios, gestionar perfil, dejar reseñas.
+- Secciones disponibles: Inicio, Favoritos, Crear Evento, Chat, Chat IA, Mis Entradas, Mis Eventos, Notificaciones, Perfil, Configuración.
+- Los eventos tienen: título, descripción, categoría, fecha, hora, ciudad, dirección, precio, capacidad, fotos, servicios.
+
+${aiEventsContext}
+
+Instrucciones importantes:
+- Cuando el usuario pregunte por un evento o pida información, responde con el formato exacto:
+  [CARD:ID|Título|Fecha|Ciudad|Precio]
+  Ejemplo: [CARD:abc-123|Concierto Rock|15 Jun|Medellín|$50.000]
+  IMPORTANTE: Usa | como separador. Si falta algún dato, déjalo vacío (ej: abc-123|Título||Ciudad|).
+- Cuando el usuario te pida comprar entradas y ya tengas el ID y la cantidad, termina tu respuesta con: [BUY:ID:CANTIDAD]
+  Ejemplo: [BUY:abc-123:2]
+- Solo usa [BUY:...] si el usuario pidió explícitamente comprar.
+- NUNCA uses formato de link [texto](/ruta) — solo usa [CARD:...] para eventos y [BUY:...] para compras.
+- Responde siempre en español, de forma clara y concisa.
+- Sé cálida y usa emojis ocasionalmente.`
+
+      const result = await chatWithAI(systemPrompt, history.map(m => ({ role: m.role, content: m.content })))
+      const buyMatch = result?.match(/\[BUY:([^\]]+):(\d+)\]/)
+      if (buyMatch && user) {
+        const [, eventId, qtyStr] = buyMatch
+        const qty = parseInt(qtyStr) || 1
+        const cleanResult = result?.replace(/\[BUY:[^\]]+\]/, '').trim()
+        const { error } = await supabase.from('tickets').insert({
+          event_id: eventId, user_id: user.id, qty, total: 0,
+          status: 'válida', code: `TIX-${Date.now().toString(36).toUpperCase()}`,
+        })
+        if (!error) {
+          setAiMessages(prev => [...prev, { id: Date.now(), role: 'ai', content: `${cleanResult || '✅ Entrada comprada correctamente.'} Puedes ver tus entradas en Mis Entradas.` }])
+        } else {
+          setAiMessages(prev => [...prev, { id: Date.now(), role: 'ai', content: 'Lo siento, ocurrió un error al procesar la compra. Intenta de nuevo.' }])
+        }
+      } else {
+        setAiMessages(prev => [...prev, { id: Date.now(), role: 'ai', content: result || 'Lo siento, no pude procesar tu solicitud.' }])
+      }
+    } catch {
+      setAiMessages(prev => [...prev, { id: Date.now(), role: 'ai', content: 'Ocurrió un error. Por favor intenta de nuevo.' }])
+    }
+    setAiLoading(false)
+  }
+
+  function renderContent(text: string, onBuyTicket?: (eventId: string, title: string) => void) {
+    const cardRegex = /\[CARD:([^\]]+)\]/g
+    const segments: { type: 'text' | 'card'; value: string; cardData?: string[] }[] = []
+    let lastIdx = 0, m: RegExpExecArray | null
+    while ((m = cardRegex.exec(text)) !== null) {
+      if (m.index > lastIdx) segments.push({ type: 'text', value: text.slice(lastIdx, m.index) })
+      segments.push({ type: 'card', value: m[1], cardData: m[1].split('|') })
+      lastIdx = cardRegex.lastIndex
+    }
+    if (lastIdx < text.length) segments.push({ type: 'text', value: text.slice(lastIdx) })
+    return segments.map((seg, segIdx) => {
+      if (seg.type === 'card' && seg.cardData && seg.cardData.length >= 2) {
+        const [eventId, title, date, city, price] = seg.cardData
+        return (
+          <div key={segIdx} className="border-2 border-black rounded p-3 my-2 bg-[#f8f9fa] shadow-[2px_2px_0px_#000]">
+            <h4 className="font-orbitron font-bold text-sm text-gray-900 mb-1">{title}</h4>
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-500 mb-2 font-share-tech">
+              {date && <span>📅 {date}</span>}
+              {city && <span>📍 {city}</span>}
+              {price && <span>💰 {formatPrice(price)}</span>}
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => navigate(`/evento/${eventId}`)}
+                className="cyber-btn text-xs">Ver más</button>
+              <button type="button" onClick={() => onBuyTicket ? onBuyTicket(eventId, title) : navigate(`/evento/${eventId}`)}
+                className="cyber-btn-active text-xs">Comprar entrada</button>
             </div>
           </div>
-        )}
+        )
+      }
+      const linkParts = seg.value.split(/(\[BUY:[^\]]+\])/g)
+      return linkParts.map((part, i) => (
+        <span key={`${segIdx}-${i}`}>{part}</span>
+      ))
+    })
+  }
+
+  return (
+    <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-7rem)] flex gap-0 pt-12 w-full overflow-x-hidden">
+      <div className="w-80 bg-[#f8f9fa] border-2 border-black shadow-[3px_3px_0px_#000] flex flex-col shrink-0 overflow-hidden relative">
+        <div className="absolute inset-0 cyber-grid pointer-events-none opacity-10 z-0" />
+        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500 z-10" />
+        <div className="p-4 border-b-2 border-black relative z-10">
+          <div className="flex-1 min-w-0">
+            <h2 className="font-orbitron font-extrabold text-sm bg-gradient-to-r from-cyan-600 to-fuchsia-600 bg-clip-text text-transparent uppercase tracking-wider">{t('chat.titulo')}</h2>
+            <p className="font-share-tech text-xs text-slate-500 mt-0.5">{chatList.length} {t('chat.conversaciones')}</p>
+          </div>
+        </div>
+        <div className="px-4 py-2 border-b-2 border-black">
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar conversación..."
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border-2 border-black focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white shadow-[2px_2px_0px_#000]"
+            />
+          </div>
+        </div>
 
         <div className="flex-1 overflow-y-auto">
-          {filteredChatList.length === 0 && !sidebarCollapsed && (
-            <div className="p-4 text-center text-sm text-gray-400">
+          {filteredChatList.length === 0 && (
+            <div className="p-4 text-center font-share-tech text-sm text-slate-400">
               {searchQuery ? 'Sin resultados' : 'No hay conversaciones'}
             </div>
           )}
@@ -395,86 +520,147 @@ export default function Chat() {
             <button
               key={chat.id}
               type="button"
-              onClick={() => { setSelectedId(chat.id); setSidebarCollapsed(true) }}
-              className={`w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors cursor-pointer border-b border-gray-50 ${
+              onClick={() => setSelectedId(chat.id)}
+              className={`w-full flex items-start gap-3 px-4 py-3.5 text-left transition-all cursor-pointer border-b-2 border-black relative overflow-hidden ${
                 selectedId === chat.id
-                  ? 'bg-indigo-50/70'
+                  ? 'bg-gradient-to-r from-accent-light/70 to-fuchsia-100/50 border-l-4 border-l-fuchsia-500 border-r-2 border-r-fuchsia-300 border-t-2 border-t-fuchsia-200 border-b-2 border-b-fuchsia-200 shadow-[inset_0_0_16px_rgba(192,38,211,0.12)]'
                   : unread > 0
-                    ? 'bg-blue-50/60 hover:bg-blue-100/50'
-                    : 'hover:bg-gray-50'
-              } ${sidebarCollapsed ? 'justify-center px-0' : ''}`}
+                    ? 'bg-cyan-50/70 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-fuchsia-50/50 hover:border-l-4 hover:border-l-fuchsia-500'
+                    : 'hover:bg-gradient-to-r hover:from-accent-light/30 hover:to-fuchsia-50/30 hover:border-l-4 hover:border-l-fuchsia-500'
+              }`}
             >
               <div className="relative shrink-0">
                 {chat.cover ? (
-                  <div className="w-10 h-10 rounded-full overflow-hidden">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-black">
                     <img src={chat.cover} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold`}>
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold border-2 border-black">
                     {chat.event.charAt(0)}
                   </div>
                 )}
                 {unread > 0 && (
-                  <div className={`absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-red-500 text-white font-bold shadow-md ring-2 ring-white ${sidebarCollapsed ? 'w-4 h-4 text-[8px]' : 'min-w-[18px] h-[18px] text-[10px] px-1'}`}>
-                    {unread > (sidebarCollapsed ? 9 : 99) ? (sidebarCollapsed ? '9+' : '99+') : unread}
+                  <div className="absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-fuchsia-600 text-white font-bold shadow-[1px_1px_0px_#000] ring-2 ring-white min-w-[18px] h-[18px] text-[10px] px-1">
+                    {unread > 99 ? '99+' : unread}
                   </div>
                 )}
               </div>
-              {!sidebarCollapsed && (
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className={`text-sm truncate ${unread > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-900'}`}>
-                      {pinnedRef.current.has(chat.id) && (
-                        <svg className="w-3.5 h-3.5 inline mr-1 -mt-0.5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
-                        </svg>
-                      )}
-                      {chat.event}
-                    </p>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {unread > 0 && (
-                        <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                      )}
-                      <span className="text-[11px] text-gray-400">{chat.time}</span>
-                    </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <p className={`font-orbitron text-sm truncate ${unread > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-900'}`}>
+                    {pinnedRef.current.has(chat.id) && (
+                      <svg className="w-3.5 h-3.5 inline mr-1 -mt-0.5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+                      </svg>
+                    )}
+                    {chat.event}
+                  </p>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {unread > 0 && (
+                      <span className="w-2 h-2 rounded-full bg-fuchsia-500" />
+                    )}
+                    <span className="font-share-tech text-[11px] text-slate-400">{chat.time}</span>
                   </div>
-                  <p className={`text-xs truncate mt-0.5 ${unread > 0 ? 'font-semibold text-gray-700' : 'text-gray-500'}`}>{chat.lastMsg}</p>
                 </div>
-              )}
+                <p className={`font-share-tech text-xs truncate mt-0.5 ${unread > 0 ? 'font-semibold text-gray-700' : 'text-slate-500'}`}>{chat.lastMsg}</p>
+              </div>
             </button>
           )})}
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col bg-gray-50">
-        {!selected ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-3xl mb-4">
+      <div className={`flex-1 flex flex-col ${selected ? 'border-2 border-black shadow-[3px_3px_0px_#000] bg-gradient-to-br from-cyan-50/10 via-white to-fuchsia-50/10' : 'bg-gray-50'}`}>
+        {selectedId === '__amore__' ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="p-4 border-b-2 border-black bg-gradient-to-r from-cyan-600 to-fuchsia-700 text-white flex items-center gap-3 relative overflow-hidden shrink-0">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500" />
+              <span className="text-3xl">✨</span>
+              <div>
+                <h1 className="font-orbitron font-bold text-lg">YULIANIS</h1>
+                <p className="font-share-tech text-xs text-cyan-200 font-medium">En línea</p>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
+              {aiMessages.map(m => (
+                <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[70%] rounded-2xl px-5 py-3 text-sm border-2 border-black ${
+                    m.role === 'user'
+                      ? 'bg-cyan-500 text-white rounded-br-none shadow-[3px_3px_0px_#000]'
+                      : 'bg-[#f8f9fa] text-gray-800 rounded-bl-none shadow-[2px_2px_0px_#000]'
+                  }`}>
+                    <div className="leading-relaxed whitespace-pre-wrap">{renderContent(m.content, (eid, title) => {})}</div>
+                  </div>
+                </div>
+              ))}
+              {aiLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-[#f8f9fa] text-gray-800 border-2 border-black rounded-2xl rounded-bl-none shadow-[2px_2px_0px_#000] px-5 py-3">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-fuchsia-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 bg-fuchsia-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 bg-fuchsia-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={aiMessagesEndRef} />
+            </div>
+
+            <form onSubmit={handleAiSend} className="p-4 bg-[#f8f9fa] border-t-2 border-black shrink-0">
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  placeholder="Escríbele a YULIANIS..."
+                  className="cyber-input w-full pl-4 pr-12 py-3.5"
+                  onFocus={() => { aiLastActivity.current = Date.now() }}
+                />
+                <button
+                  type="submit"
+                  disabled={!aiInput.trim() || aiLoading}
+                  className="absolute right-2 cyber-btn-active"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : !selected ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-br from-cyan-50/30 via-white to-fuchsia-50/30 border-2 border-black shadow-[3px_3px_0px_#000] relative overflow-hidden">
+            <div className="absolute inset-0 cyber-grid pointer-events-none opacity-[0.03]" />
+            <div className="w-20 h-20 rounded-full border-4 border-black shadow-[4px_4px_0px_#000] bg-gradient-to-br from-cyan-400 to-fuchsia-400 flex items-center justify-center text-3xl mb-5 animate-bounce">
               💬
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">{t('chat.selecciona')}</h3>
-            <p className="text-sm text-gray-500 max-w-xs">
+            <h3 className="font-orbitron font-extrabold text-lg bg-gradient-to-r from-cyan-600 to-fuchsia-600 bg-clip-text text-transparent uppercase tracking-wider mb-2">{t('chat.selecciona')}</h3>
+            <p className="font-share-tech text-sm text-slate-500 max-w-xs">
               {t('chat.selecciona_desc')}
             </p>
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-3 px-6 py-4 bg-white border-b border-gray-200">
+            <div className="flex items-center gap-3 px-6 py-4 bg-[#f8f9fa] border-b-2 border-black relative shadow-[0_2px_0px_#000]">
+              <div className="absolute inset-0 cyber-grid pointer-events-none opacity-[0.04]" />
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500" />
+              <div className="absolute bottom-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-accent-secondary to-transparent opacity-50" />
               <div className="relative shrink-0">
                 {selected?.cover ? (
-                  <div className="w-9 h-9 rounded-full overflow-hidden">
+                  <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-black">
                     <img src={selected.cover} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold shrink-0`}>
+                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold shrink-0 border-2 border-black`}>
                     {selected?.event?.charAt(0) ?? 'E'}
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">{selected.event}</p>
-                <p className="text-xs text-gray-500 truncate">{eventDate}</p>
-                <p className="text-xs text-gray-400">{attendeeCount} {t('chat.boletas_vendidas')}</p>
+                <p className="font-orbitron font-bold text-sm text-gray-900 truncate">{selected.event}</p>
+                <p className="font-share-tech text-xs text-slate-500 truncate">{eventDate}</p>
+                <p className="font-share-tech text-xs text-slate-400">{attendeeCount} {t('chat.boletas_vendidas')}</p>
               </div>
               <div className="relative">
                 <button
@@ -491,14 +677,14 @@ export default function Chat() {
 
                 {showCustomize && (
                   <>
-                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-lg border border-gray-200 z-20 max-h-[80vh] overflow-y-auto">
-                      <div className="p-4 border-b border-gray-100">
-                        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Apariencia del chat</h4>
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] z-20 max-h-[80vh] overflow-y-auto">
+                      <div className="p-4 border-b-2 border-black">
+                        <h4 className="font-orbitron font-bold text-xs text-slate-400 uppercase tracking-wider">Apariencia del chat</h4>
                       </div>
 
-                      <div className="p-4 space-y-4 border-b border-gray-100">
+                      <div className="p-4 space-y-4 border-b-2 border-black">
                         <div>
-                          <p className="text-xs font-medium text-gray-600 mb-1.5">Mi burbuja</p>
+                          <p className="font-orbitron text-xs font-bold text-slate-600 mb-1.5">Mi burbuja</p>
                           <div className="flex gap-1.5">
                             {[
                               { key: 'indigo', cls: 'bg-indigo-600' },
@@ -508,13 +694,13 @@ export default function Chat() {
                               { key: 'pink', cls: 'bg-pink-500' },
                             ].map((b) => (
                               <button key={b.key} type="button" onClick={() => setMyBubble(b.key)}
-                                className={`w-7 h-7 rounded-full ${b.cls} border-2 transition-all cursor-pointer ${myBubble === b.key ? 'border-gray-800 scale-110' : 'border-transparent'}`} title={b.key} />
+                                className={`w-7 h-7 rounded-full ${b.cls} border-2 transition-all cursor-pointer ${myBubble === b.key ? 'border-black scale-110 shadow-[2px_2px_0px_#000]' : 'border-transparent'}`} title={b.key} />
                             ))}
                           </div>
                         </div>
 
                         <div>
-                          <p className="text-xs font-medium text-gray-600 mb-1.5">Otras burbujas</p>
+                          <p className="font-orbitron text-xs font-bold text-slate-600 mb-1.5">Otras burbujas</p>
                           <div className="flex gap-1.5">
                             {[
                               { key: 'gray', cls: 'bg-gray-100 border-gray-300', label: 'Gris' },
@@ -523,13 +709,13 @@ export default function Chat() {
                               { key: 'cool', cls: 'bg-sky-50 border-sky-300', label: 'Frío' },
                             ].map((b) => (
                               <button key={b.key} type="button" onClick={() => setOtherBubble(b.key)}
-                                className={`w-7 h-7 rounded-full ${b.cls} border-2 transition-all cursor-pointer ${otherBubble === b.key ? 'border-gray-800 scale-110' : 'border-gray-200'}`} title={b.label} />
+                                className={`w-7 h-7 rounded-full ${b.cls} border-2 transition-all cursor-pointer ${otherBubble === b.key ? 'border-black scale-110 shadow-[2px_2px_0px_#000]' : 'border-gray-200'}`} title={b.label} />
                             ))}
                           </div>
                         </div>
 
                         <div>
-                          <p className="text-xs font-medium text-gray-600 mb-1.5">Color de fondo</p>
+                          <p className="font-orbitron text-xs font-bold text-slate-600 mb-1.5">Color de fondo</p>
                           <div className="flex gap-1.5">
                             {[
                               { key: 'bg-gray-50', cls: 'bg-gray-50', label: 'Gris' },
@@ -538,13 +724,13 @@ export default function Chat() {
                               { key: 'bg-blue-50', cls: 'bg-blue-50', label: 'Azul' },
                             ].map((b) => (
                               <button key={b.key} type="button" onClick={() => setChatBg(b.key)}
-                                className={`w-7 h-7 rounded-full ${b.cls} border-2 transition-all cursor-pointer ${chatBg === b.key ? 'border-indigo-500 scale-110' : 'border-gray-200'}`} title={b.label} />
+                                className={`w-7 h-7 rounded-full ${b.cls} border-2 transition-all cursor-pointer ${chatBg === b.key ? 'border-cyan-500 scale-110 shadow-[2px_2px_0px_#000]' : 'border-gray-200'}`} title={b.label} />
                             ))}
                           </div>
                         </div>
 
                         <div>
-                          <p className="text-xs font-medium text-gray-600 mb-1.5">Color del texto</p>
+                          <p className="font-orbitron text-xs font-bold text-slate-600 mb-1.5">Color del texto</p>
                           <div className="flex gap-1.5">
                             {[
                               { key: 'gray-900', cls: 'bg-gray-900', label: 'Oscuro' },
@@ -553,20 +739,20 @@ export default function Chat() {
                               { key: 'indigo-800', cls: 'bg-indigo-800', label: 'Indigo' },
                             ].map((b) => (
                               <button key={b.key} type="button" onClick={() => setTextColor(b.key)}
-                                className={`w-7 h-7 rounded-full ${b.cls} border-2 transition-all cursor-pointer ${textColor === b.key ? 'border-indigo-500 scale-110' : 'border-gray-200'}`} title={b.label} />
+                                className={`w-7 h-7 rounded-full ${b.cls} border-2 transition-all cursor-pointer ${textColor === b.key ? 'border-cyan-500 scale-110 shadow-[2px_2px_0px_#000]' : 'border-gray-200'}`} title={b.label} />
                             ))}
                           </div>
                         </div>
 
                         <div>
-                          <p className="text-xs font-medium text-gray-600 mb-1.5">Tamaño de texto</p>
+                          <p className="font-orbitron text-xs font-bold text-slate-600 mb-1.5">Tamaño de texto</p>
                           <div className="flex gap-1">
                             {[
                               { key: 'sm' as const, label: 'Pequeño' },
                               { key: 'base' as const, label: 'Mediano' },
                             ].map((f) => (
                               <button key={f.key} type="button" onClick={() => setFontSize(f.key)}
-                                className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${fontSize === f.key ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                                className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-2 border-black shadow-[1px_1px_0px_#000] ${fontSize === f.key ? 'bg-cyan-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>
                                 {f.label}
                               </button>
                             ))}
@@ -574,13 +760,13 @@ export default function Chat() {
                         </div>
                       </div>
 
-                      <div className="p-4 border-b border-gray-100">
-                        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Preferencias del chat</h4>
+                      <div className="p-4 border-b-2 border-black">
+                        <h4 className="font-orbitron font-bold text-xs text-slate-400 uppercase tracking-wider">Preferencias del chat</h4>
                       </div>
 
-                      <div className="p-4 space-y-3 border-b border-gray-100">
+                      <div className="p-4 space-y-3 border-b-2 border-black">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-700">Notificaciones</span>
+                          <span className="font-share-tech text-sm text-slate-700">Notificaciones</span>
                           <button type="button" onClick={() => {
                             const newVal = !notifications
                             setNotifications(newVal)
@@ -596,12 +782,12 @@ export default function Chat() {
                               }
                             }
                           }}
-                            className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${notifications ? 'bg-indigo-600' : 'bg-gray-300'}`}>
-                            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${notifications ? 'translate-x-4' : ''}`} />
+                            className={`w-9 h-5 rounded-full p-0.5 border-2 transition-colors cursor-pointer ${notifications ? 'bg-cyan-500 border-black' : 'bg-gray-300 border-gray-400'}`}>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow-[1px_1px_0px_#000] transition-transform ${notifications ? 'translate-x-4' : ''}`} />
                           </button>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-700">Fijar chat</span>
+                          <span className="font-share-tech text-sm text-slate-700">Fijar chat</span>
                           <button type="button" onClick={() => {
                             const newVal = !pinned
                             if (newVal && pinnedRef.current.size >= 7) {
@@ -621,8 +807,8 @@ export default function Chat() {
                               }
                             }
                           }}
-                            className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${pinned ? 'bg-indigo-600' : 'bg-gray-300'}`}>
-                            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${pinned ? 'translate-x-4' : ''}`} />
+                            className={`w-9 h-5 rounded-full p-0.5 border-2 transition-colors cursor-pointer ${pinned ? 'bg-cyan-500 border-black' : 'bg-gray-300 border-gray-400'}`}>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow-[1px_1px_0px_#000] transition-transform ${pinned ? 'translate-x-4' : ''}`} />
                           </button>
                         </div>
                         {[
@@ -630,29 +816,29 @@ export default function Chat() {
                           { key: 'persistent', label: 'Mensajes persistentes', value: persistent, set: setPersistent },
                         ].map((t) => (
                           <div key={t.key} className="flex items-center justify-between">
-                            <span className="text-sm text-gray-700">{t.label}</span>
+                            <span className="font-share-tech text-sm text-slate-700">{t.label}</span>
                             <button type="button" onClick={() => t.set(!t.value)}
-                              className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${t.value ? 'bg-indigo-600' : 'bg-gray-300'}`}>
-                              <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${t.value ? 'translate-x-4' : ''}`} />
+                              className={`w-9 h-5 rounded-full p-0.5 border-2 transition-colors cursor-pointer ${t.value ? 'bg-cyan-500 border-black' : 'bg-gray-300 border-gray-400'}`}>
+                              <div className={`w-4 h-4 bg-white rounded-full shadow-[1px_1px_0px_#000] transition-transform ${t.value ? 'translate-x-4' : ''}`} />
                             </button>
                           </div>
                         ))}
                       </div>
 
-                      <div className="p-4 border-b border-gray-100">
-                        <h4 className="text-xs font-semibold text-red-500 uppercase tracking-wider">Zona de peligro</h4>
+                      <div className="p-4 border-b-2 border-black">
+                        <h4 className="font-orbitron font-bold text-xs text-fuchsia-600 uppercase tracking-wider">Zona de peligro</h4>
                       </div>
 
                       <div className="p-4 space-y-2">
                         <button type="button" onClick={() => setShowClearConfirm(true)}
-                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg font-share-tech text-sm text-fuchsia-600 hover:bg-fuchsia-50 border-2 border-transparent hover:border-fuchsia-300 transition-all cursor-pointer">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                           {t('chat.vaciar')}
                         </button>
                         <button type="button" onClick={() => setShowReport(true)}
-                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg font-share-tech text-sm text-fuchsia-600 hover:bg-fuchsia-50 border-2 border-transparent hover:border-fuchsia-300 transition-all cursor-pointer">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21l4-4m0 0l-4-4m4 4h18" />
                           </svg>
@@ -666,10 +852,10 @@ export default function Chat() {
               </div>
             </div>
 
-            <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto px-6 py-4 space-y-3 ${chatBg} ${fontSize === 'base' ? 'text-base' : 'text-sm'}`}>
+            <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto px-6 py-4 space-y-3 ${chatBg === 'bg-gray-50' ? 'bg-gradient-to-br from-cyan-50/20 via-white to-fuchsia-50/20' : chatBg} ${fontSize === 'base' ? 'text-base' : 'text-sm'}`}>
               {msgs.map((msg) => {
                 const isMe = msg.from === 'me'
-                const senderName = isMe ? t('chat.tu') : msg.senderName || 'Usuario'
+                const senderName = msg.senderName || 'Usuario'
   const myBubbleColors: Record<string, string> = {
     indigo: 'bg-indigo-600',
     blue: 'bg-blue-600',
@@ -694,98 +880,120 @@ export default function Chat() {
                 <div key={msg.id} className="relative group">
                   {replyingTo?.id === msg.id && (
                     <button type="button" onClick={() => msgRefs.current[msg.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                      className="text-[11px] text-indigo-500 font-medium mb-1 ml-1 hover:text-indigo-700 transition-colors cursor-pointer">
+                      className="text-[11px] text-fuchsia-500 font-medium mb-1 ml-1 hover:text-fuchsia-700 transition-colors cursor-pointer font-orbitron">
                       ← Respondiendo a este mensaje
                     </button>
                   )}
                   <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                     <div className={`flex items-end gap-2 max-w-[75%] ${isMe ? 'flex-row-reverse' : ''}`}>
                       {!isMe && (msg.senderAvatar ? (
-                        <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-black shrink-0">
                           <img src={msg.senderAvatar} alt="" className="w-full h-full object-cover" />
                         </div>
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-fuchsia-500 flex items-center justify-center text-white text-xs font-bold shrink-0 border-2 border-black">
                           {(msg.senderName || 'U').charAt(0).toUpperCase()}
                         </div>
                       ))}
                       <div className="flex flex-col min-w-0">
-                        <div className={`flex items-center gap-2 mb-0.5 ${isMe ? 'justify-end' : ''}`}>
-                          <span className="text-[11px] font-medium text-gray-500">{senderName}</span>
-                          <span className="text-[10px] text-gray-400">{msg.time}</span>
+                        {!isMe && (
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-share-tech text-[11px] font-medium text-slate-500">{senderName}</span>
                         </div>
+                        )}
                         <div className="relative flex items-end gap-1">
                           {!isMe && (
-                            <button type="button" onClick={() => setMenuMsgId(menuMsgId === msg.id ? null : msg.id)}
+                            <button type="button" onClick={(e) => {
+                              if (menuMsgId === msg.id) { setMenuMsgId(null); setMenuPos(null) }
+                              else { const r = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect(); setMenuMsgId(msg.id); setMenuPos({ x: r.left, y: r.bottom }) }
+                            }}
                               className="opacity-40 hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="Opciones">
                               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
                             </button>
                           )}
                           <div
-                            onClick={() => isMe && setMenuMsgId(menuMsgId === msg.id ? null : msg.id)}
+                            onClick={(e) => { if (isMe) { if (menuMsgId === msg.id) { setMenuMsgId(null); setMenuPos(null) } else { const r = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect(); setMenuMsgId(msg.id); setMenuPos({ x: r.right - 140, y: r.bottom }) } } }}
                             ref={(el) => { msgRefs.current[msg.id] = el }}
-                            className={`px-4 py-2.5 rounded-2xl cursor-pointer ${fontSize === 'base' ? 'text-base' : 'text-sm'} ${isMe ? `text-white rounded-br-md ${myBubbleColors[myBubble] || 'bg-indigo-600'}` : `rounded-bl-md border ${otherBubbleColors[otherBubble] || 'bg-white border-gray-200'} ${textColorMap[textColor] || 'text-gray-900'}`}`}
+                            className={`px-4 py-2.5 cursor-pointer ${fontSize === 'base' ? 'text-base' : 'text-sm'} border-2 border-black shadow-[2px_2px_0px_#000] ${highlighted?.id === msg.id ? 'highlight-flash' : ''} ${replyingTo?.id === msg.id ? 'replied-shadow' : ''} ${isMe ? `text-white ${myBubbleColors[myBubble] || 'bg-indigo-600'} rounded-2xl rounded-br-md` : `rounded-2xl rounded-bl-md ${otherBubbleColors[otherBubble] || 'bg-white border-gray-200'} ${textColorMap[textColor] || 'text-gray-900'}`}`}
                           >
                             {msg.replyTo && (
-                              <button type="button" onClick={(e) => { e.stopPropagation(); msgRefs.current[msg.replyTo!.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }}
-                                className={`block w-full text-left mb-2 p-2 rounded-lg text-[11px] border-l-2 transition-all cursor-pointer ${isMe ? 'bg-white/15 border-white/50 text-white/80 hover:bg-white/25' : 'bg-gray-50 border-gray-400 text-gray-500 hover:bg-gray-100'}`}
+                              <button type="button" onClick={(e) => { e.stopPropagation(); const targetId = msg.replyTo!.id; msgRefs.current[targetId]?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setHighlighted(null); setTimeout(() => setHighlighted({ id: targetId, key: Date.now() }), 10) }}
+                                className={`block w-full text-left mb-2 p-2 rounded-lg text-[11px] border-2 border-black shadow-[1px_1px_0px_#000] transition-all cursor-pointer ${isMe ? 'bg-white/15 border-white/50 text-white/80 hover:bg-white/25' : 'bg-gray-50 border-gray-400 text-gray-500 hover:bg-gray-100'}`}
                                 title="Ir al mensaje original"
                               >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-semibold">Mensaje respondido</span>
+                                <div className="flex items-center gap-1">
                                   <svg className="w-3 h-3 shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                                   </svg>
+                                  <span className="font-orbitron font-bold truncate">{msg.replyTo.userId === user.id ? 'Tú' : msg.replyTo.senderName}</span>
                                 </div>
-                                <span className="line-clamp-1 mt-0.5 block">{msg.replyTo.text}</span>
+                                <span className="truncate mt-0.5 block font-share-tech">{msg.replyTo.mediaType ? (msg.replyTo.mediaType === 'video' ? 'Video' : 'Foto') : (msg.replyTo.text.split(' ').slice(0, 2).join(' ') + (msg.replyTo.text.split(' ').length > 2 ? '...' : ''))}</span>
                               </button>
                             )}
                             {msg.media && (
                               <button type="button" onClick={(e) => { e.stopPropagation(); setFullscreenMedia({ url: msg.media!.url, type: msg.media!.type }) }}
-                                className="mb-2 rounded-xl overflow-hidden block w-full cursor-pointer">
+                                className="mb-2 rounded-xl overflow-hidden block w-full cursor-pointer border-2 border-black shadow-[2px_2px_0px_#000]">
                                 {msg.media.type === 'video' ? (
-                                  <video src={msg.media.url} className="w-full max-h-60 object-cover rounded-xl pointer-events-none" />
+                                  <video src={msg.media.url} muted className="w-full max-h-60 object-cover rounded-xl pointer-events-none" />
                                 ) : (
                                   <img src={msg.media.url} alt="" className="w-full max-h-60 object-cover rounded-xl" />
                                 )}
                               </button>
                             )}
-                            <p className="leading-relaxed">{msg.text}</p>
-                            <p className={`text-[10px] mt-1 ${isMe ? 'text-white/60' : 'text-gray-400'}`}>
+                            {(() => {
+                              const isExpanded = expandedMsgs.has(msg.id)
+                              const long = msg.text.length > 200
+                              return (
+                                <div>
+                                  <p className="leading-relaxed">{long && !isExpanded ? msg.text.slice(0, 150) + '...' : msg.text}</p>
+                                  {long && (
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); setExpandedMsgs(prev => { const next = new Set(prev); next.has(msg.id) ? next.delete(msg.id) : next.add(msg.id); return next }) }}
+                                      className="font-share-tech text-xs text-cyan-600 hover:text-cyan-800 mt-0.5 underline transition-colors cursor-pointer">
+                                      {isExpanded ? 'Ver menos' : 'Ver más'}
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            })()}
+                            <p className={`font-share-tech text-[10px] mt-1 ${isMe ? 'text-white/60' : 'text-gray-400'}`}>
                               {msg.time}
                             </p>
                           </div>
                           {isMe && (
-                            <button type="button" onClick={() => setMenuMsgId(menuMsgId === msg.id ? null : msg.id)}
+                            <button type="button" onClick={(e) => {
+                              if (menuMsgId === msg.id) { setMenuMsgId(null); setMenuPos(null) }
+                              else { const r = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect(); setMenuMsgId(msg.id); setMenuPos({ x: r.right - 140, y: r.bottom }) }
+                            }}
                               className="opacity-40 hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="Opciones">
                               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
                             </button>
                           )}
                           {menuMsgId === msg.id && (
                             <>
-                              <div className="fixed inset-0 z-10" onClick={() => setMenuMsgId(null)} />
-                              <div className={`absolute top-0 ${isMe ? 'right-full mr-2' : 'left-full ml-2'} bg-white rounded-xl shadow-lg border border-gray-200 py-1 min-w-[160px] z-20`}>
-                                <button type="button" onClick={() => { setReplyingTo({ id: msg.id, text: msg.text }); setMenuMsgId(null) }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg> {t('chat.responder')}
+                              <div className="fixed inset-0 z-10" onClick={() => { setMenuMsgId(null); setMenuPos(null) }} />
+                              {menuPos && (
+                              <div className="fixed bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] py-1 min-w-[140px] z-50" style={{ left: menuPos?.x, top: menuPos?.y }}>
+                                <button type="button" onClick={() => { setReplyingTo({ id: msg.id, text: msg.text.split(' ').slice(0, 2).join(' ') + (msg.text.split(' ').length > 2 ? '...' : '') }); setMenuMsgId(null); setMenuPos(null); msgRefs.current[msg.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }}
+                                  className="w-full flex items-center gap-1.5 px-2 py-1.5 font-share-tech text-xs text-gray-700 hover:bg-cyan-50 transition-colors cursor-pointer">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg> {t('chat.responder')}
                                 </button>
-                                <button type="button" onClick={() => { navigator.clipboard.writeText(msg.text); setMenuMsgId(null) }}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg> {t('chat.copiar')}
+                                <button type="button" onClick={() => { navigator.clipboard.writeText(msg.text); setMenuMsgId(null); setMenuPos(null) }}
+                                  className="w-full flex items-center gap-1.5 px-2 py-1.5 font-share-tech text-xs text-gray-700 hover:bg-cyan-50 transition-colors cursor-pointer">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg> {t('chat.copiar')}
                                 </button>
-                                <div className="border-t border-gray-100 my-1">
-                                  <button type="button" onClick={() => { setConfirmDelete({ id: msg.id, action: 'me' }); setMenuMsgId(null) }}
-                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg> {t('chat.eliminar_mi')}
+                                <div className="border-t-2 border-black my-1">
+                                  <button type="button" onClick={() => { setConfirmDelete({ id: msg.id, action: 'me' }); setMenuMsgId(null); setMenuPos(null) }}
+                                    className="w-full flex items-center gap-1.5 px-2 py-1.5 font-share-tech text-xs text-fuchsia-600 hover:bg-fuchsia-50 transition-colors cursor-pointer">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg> {t('chat.eliminar_mi')}
                                   </button>
                                   {isMe && (
-                                    <button type="button" onClick={() => { setConfirmDelete({ id: msg.id, action: 'all' }); setMenuMsgId(null) }}
-                                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> {t('chat.eliminar_todos')}
+                                    <button type="button" onClick={() => { setConfirmDelete({ id: msg.id, action: 'all' }); setMenuMsgId(null); setMenuPos(null) }}
+                                      className="w-full flex items-center gap-1.5 px-2 py-1.5 font-share-tech text-xs text-fuchsia-600 hover:bg-fuchsia-50 transition-colors cursor-pointer">
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg> {t('chat.eliminar_todos')}
                                     </button>
                                   )}
                                 </div>
-                              </div>
+                              </div>)}
                             </>
                           )}
                         </div>
@@ -796,56 +1004,29 @@ export default function Chat() {
               )})}
               {msgs.length === 0 && selected && (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 rounded-full border-4 border-black shadow-[3px_3px_0px_#000] bg-gradient-to-br from-cyan-400 to-fuchsia-400 flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </div>
-                  <h3 className="text-base font-semibold text-gray-800 mb-1">No hay mensajes aún</h3>
-                  <p className="text-sm text-gray-500 max-w-xs">Sé el primero en romper el hielo 💬</p>
+                  <h3 className="font-orbitron font-extrabold text-base bg-gradient-to-r from-cyan-600 to-fuchsia-600 bg-clip-text text-transparent uppercase tracking-wider mb-1">No hay mensajes aún</h3>
+                  <p className="font-share-tech text-sm text-slate-500 max-w-xs">Sé el primero en romper el hielo 💬</p>
                 </div>
               )}
               <div ref={messagesEndRef} />
             </div>
 
-            {!isPremium && limitMsg && (
-              <div className="px-4 py-2 bg-red-50 border-t border-red-100 text-xs text-red-600 flex items-center gap-2">
-                <span>⚠️</span>
-                <span>{limitMsg}</span>
-              </div>
-            )}
-            {!isPremium && !limitMsg && dailyCount > 0 && (
-              <div className="px-4 py-1.5 bg-amber-50 border-t border-amber-100 text-[11px] text-amber-600 flex items-center gap-1.5">
-                <span>📨</span>
-                <span>{dailyCount}/40 mensajes hoy</span>
-                {dailyCount >= 35 && <span className="font-semibold">— Quedan pocos</span>}
-              </div>
-            )}
-            <form onSubmit={handleSend} className="p-4 bg-white border-t border-gray-200 relative">
-              {replyingTo && (
-                <div className="flex items-center justify-between mb-2 px-3 py-2 bg-indigo-50 rounded-xl text-xs text-indigo-600">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                    </svg>
-                    <span className="truncate font-medium">Respondiendo: <span className="font-normal text-indigo-500">{replyingTo.text}</span></span>
-                  </div>
-                  <button type="button" onClick={() => setReplyingTo(null)}
-                    className="text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer shrink-0">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              )}
+
+            <form onSubmit={handleSend} className="p-4 bg-[#f8f9fa] border-t-2 border-black relative shadow-[0_-2px_0px_#000]">
+              <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-accent to-transparent opacity-50 pointer-events-none" />
               {mediaPreview && (
-                <div className="flex items-center gap-2 mb-3 p-2 rounded-xl bg-gray-50 border border-gray-200">
+                <div className="flex items-center gap-2 mb-3 p-2 rounded-xl bg-white border-2 border-black shadow-[2px_2px_0px_#000]">
                   {mediaPreview.type === 'image' ? (
-                    <img src={mediaPreview.url} alt="" className="w-16 h-16 rounded-lg object-cover" />
+                    <img src={mediaPreview.url} alt="" className="w-16 h-16 rounded-lg object-cover border-2 border-black" />
                   ) : (
-                    <video src={mediaPreview.url} className="w-16 h-16 rounded-lg object-cover" />
+                    <video src={mediaPreview.url} muted className="w-16 h-16 rounded-lg object-cover border-2 border-black" />
                   )}
-                  <span className="text-xs text-gray-500 flex-1">Archivo listo para enviar</span>
+                  <span className="font-share-tech text-xs text-slate-500 flex-1">Archivo listo para enviar</span>
                   <button
                     type="button"
                     onClick={() => { setMediaPreview(null); URL.revokeObjectURL(mediaPreview.url) }}
@@ -862,7 +1043,7 @@ export default function Chat() {
                   <button
                     type="button"
                     onClick={() => setShowAttach(!showAttach)}
-                    className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                    className="p-2 text-gray-400 hover:text-cyan-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                     title="Adjuntar archivo"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -871,11 +1052,11 @@ export default function Chat() {
                   </button>
                   {showAttach && (
                     <>
-                      <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg border border-gray-200 p-1.5 flex gap-1 z-10">
+                      <div className="absolute bottom-full left-0 mb-2 bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-1.5 flex gap-1 z-10">
                         <button
                           type="button"
                           onClick={() => { handleFileSelect('image'); setShowAttach(false) }}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm text-gray-700 transition-colors cursor-pointer"
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 font-share-tech text-sm text-gray-700 transition-colors cursor-pointer"
                         >
                           <span className="text-lg">📷</span>
                           Foto
@@ -883,7 +1064,7 @@ export default function Chat() {
                         <button
                           type="button"
                           onClick={() => { handleFileSelect('video'); setShowAttach(false) }}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm text-gray-700 transition-colors cursor-pointer"
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 font-share-tech text-sm text-gray-700 transition-colors cursor-pointer"
                         >
                           <span className="text-lg">🎥</span>
                           Video
@@ -907,19 +1088,17 @@ export default function Chat() {
                   ref={textareaRef}
                   value={newMsg}
                   onChange={(e) => {
-                    const lines = e.target.value.split('\n')
-                    if (!isPremium && lines.length > 40) return
                     setNewMsg(e.target.value); autoResize()
                   }}
                   placeholder={t('chat.escribe')}
                   rows={1}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none overflow-y-auto leading-[22px]"
+                  className="flex-1 cyber-input resize-none overflow-y-auto"
                   style={{ maxHeight: 144 }}
                 />
                 <button
                   type="submit"
                   disabled={!newMsg.trim() && !mediaPreview}
-                  className="p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="cyber-btn-active"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -929,13 +1108,13 @@ export default function Chat() {
 
               {showEmoji && (
                 <>
-                  <div className="absolute bottom-full left-0 mb-2 p-3 bg-white rounded-2xl shadow-lg border border-gray-200 grid grid-cols-6 gap-1.5 z-10" onClick={(e) => e.stopPropagation()}>
+                  <div className="absolute bottom-full left-0 mb-2 p-3 bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] grid grid-cols-6 gap-1.5 z-10" onClick={(e) => e.stopPropagation()}>
                     {emojis.map((emoji) => (
                       <button
                         key={emoji}
                         type="button"
                         onClick={() => insertEmoji(emoji)}
-                        className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-lg text-lg transition-colors cursor-pointer"
+                        className="w-8 h-8 flex items-center justify-center hover:bg-cyan-100 rounded-lg text-lg transition-colors cursor-pointer border-2 border-transparent hover:border-cyan-300"
                       >
                         {emoji}
                       </button>
@@ -950,19 +1129,20 @@ export default function Chat() {
       </div>
 
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setConfirmDelete(null)}>
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-80 mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setConfirmDelete(null)}>
+          <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 w-80 mx-4 relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500" />
+            <h3 className="font-orbitron font-extrabold uppercase text-lg text-gray-900 mb-2">
               {confirmDelete.action === 'all' ? 'Eliminar para todos' : 'Eliminar para mí'}
             </h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="font-share-tech text-sm text-slate-600 mb-6">
               {confirmDelete.action === 'all'
                 ? 'Este mensaje se eliminará para todos los participantes. ¿Estás seguro?'
                 : 'Este mensaje se eliminará solo para ti. ¿Estás seguro?'}
             </p>
             <div className="flex gap-3 justify-end">
               <button type="button" onClick={() => setConfirmDelete(null)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer">
+                className="cyber-btn">
                 Cancelar
               </button>
               <button type="button" onClick={() => {
@@ -975,7 +1155,7 @@ export default function Chat() {
                 setMsgs((prev) => prev.filter((m) => m.id !== msgId))
                 setConfirmDelete(null)
               }}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors cursor-pointer">
+                className="cyber-btn-danger">
                 {confirmDelete.action === 'all' ? 'Eliminar para todos' : 'Eliminar'}
               </button>
             </div>
@@ -984,17 +1164,18 @@ export default function Chat() {
       )}
 
       {showClearConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-80 mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('chat.vaciar')}</h3>
-            <p className="text-sm text-gray-600 mb-6">{t('chat.vaciar_confirm')}</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 w-80 mx-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500" />
+            <h3 className="font-orbitron font-extrabold uppercase text-lg text-gray-900 mb-2">{t('chat.vaciar')}</h3>
+            <p className="font-share-tech text-sm text-slate-600 mb-6">{t('chat.vaciar_confirm')}</p>
             <div className="flex gap-3 justify-end">
               <button type="button" onClick={() => setShowClearConfirm(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer">
+                className="cyber-btn">
                 Cancelar
               </button>
               <button type="button" onClick={() => setShowClearConfirm(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors cursor-pointer">
+                className="cyber-btn-danger">
                 Vaciar chat
               </button>
             </div>
@@ -1003,30 +1184,31 @@ export default function Chat() {
       )}
 
       {showReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-96 mx-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 w-96 mx-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500" />
             {reportSent ? (
               <div className="text-center py-4">
                 <span className="text-4xl block mb-3">✅</span>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">Reporte enviado</h3>
-                <p className="text-sm text-gray-500 mb-6">Gracias por tu reporte. Lo revisaremos a la brevedad.</p>
+                <h3 className="font-orbitron font-extrabold uppercase text-lg text-gray-900 mb-1">Reporte enviado</h3>
+                <p className="font-share-tech text-sm text-slate-500 mb-6">Gracias por tu reporte. Lo revisaremos a la brevedad.</p>
                 <button type="button" onClick={() => { setShowReport(false); setReportSent(false); setReportReason(''); setReportMessage('') }}
-                  className="px-6 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer">
+                  className="cyber-btn-active">
                   Cerrar
                 </button>
               </div>
             ) : (
               <>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Reportar chat</h3>
-                <p className="text-sm text-gray-500 mb-5">Selecciona el motivo y describe la situación para que podamos revisarlo.</p>
+                <h3 className="font-orbitron font-extrabold uppercase text-lg text-gray-900 mb-2">Reportar chat</h3>
+                <p className="font-share-tech text-sm text-slate-500 mb-5">Selecciona el motivo y describe la situación para que podamos revisarlo.</p>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Motivo del reporte</label>
+                    <label className="font-share-tech text-slate-600 uppercase text-xs block mb-1.5">Motivo del reporte</label>
                     <select
                       value={reportReason}
                       onChange={(e) => setReportReason(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                      className="cyber-input"
                     >
                       <option value="">Selecciona un motivo</option>
                       <option value="spam">Spam o publicidad no deseada</option>
@@ -1040,20 +1222,20 @@ export default function Chat() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Mensaje (opcional)</label>
+                    <label className="font-share-tech text-slate-600 uppercase text-xs block mb-1.5">Mensaje (opcional)</label>
                     <textarea
                       value={reportMessage}
                       onChange={(e) => setReportMessage(e.target.value)}
                       placeholder="Describe los detalles del reporte..."
                       rows={4}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                      className="cyber-input resize-none"
                     />
                   </div>
                 </div>
 
                 <div className="flex gap-3 justify-end mt-6">
                   <button type="button" onClick={() => { setShowReport(false); setReportReason(''); setReportMessage('') }}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer">
+                    className="cyber-btn">
                     Cancelar
                   </button>
                   <button type="button" onClick={async () => {
@@ -1070,7 +1252,7 @@ export default function Chat() {
                     } catch { setReportSent(true) }
                     finally { setSendingReport(false) }
                   }} disabled={!reportReason || sendingReport}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer">
+                    className="cyber-btn-danger">
                     {sendingReport ? 'Enviando...' : 'Enviar reporte'}
                   </button>
                 </div>
@@ -1097,7 +1279,7 @@ export default function Chat() {
       )}
 
       {toastMsg && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 bg-gray-900 text-white text-sm font-medium rounded-xl shadow-lg transition-all duration-300">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 bg-gray-900 text-white font-share-tech text-sm font-medium rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] transition-all duration-300">
           {toastMsg}
         </div>
       )}

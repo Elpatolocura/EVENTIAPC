@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getNotificationPreferences, updateNotificationPreferences } from '../lib/db'
 
@@ -17,6 +18,7 @@ const options: Pref[] = [
 ]
 
 export default function NotificacionesConfig() {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [prefs, setPrefs] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState(false)
@@ -55,24 +57,38 @@ export default function NotificacionesConfig() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Notificaciones</h1>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="cyber-btn"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h1 className="font-orbitron font-extrabold uppercase text-2xl text-gray-900">Notificaciones</h1>
+      </div>
+      <div className="space-y-3">
         {options.map((opt) => (
-          <div key={opt.key} className="flex items-center justify-between px-5 py-4">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">{opt.icon}</span>
-              <div>
-                <p className="text-sm font-medium text-gray-900">{opt.label}</p>
-                <p className="text-xs text-gray-500">{opt.desc}</p>
+          <div key={opt.key} className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-5 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">{opt.icon}</span>
+                <div>
+                  <p className="font-orbitron font-bold group-hover:text-fuchsia-600 text-sm text-gray-900 transition-colors">{opt.label}</p>
+                  <p className="font-share-tech text-xs text-slate-600">{opt.desc}</p>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => toggle(opt.key)}
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 transition-colors cursor-pointer ${prefs[opt.key] ? 'bg-cyan-500 border-black' : 'bg-gray-300 border-gray-400'}`}
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-[1px_1px_0px_#000] transition-transform ${prefs[opt.key] ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => toggle(opt.key)}
-              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors cursor-pointer ${prefs[opt.key] ? 'bg-indigo-600' : 'bg-gray-200'}`}
-            >
-              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${prefs[opt.key] ? 'translate-x-5' : 'translate-x-0'}`} />
-            </button>
           </div>
         ))}
       </div>
@@ -81,16 +97,16 @@ export default function NotificacionesConfig() {
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="mt-6 w-full py-3 rounded-xl bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer"
+        className="mt-6 w-full cyber-btn-active"
       >
         {saving ? 'Guardando...' : 'Guardar preferencias'}
       </button>
 
       {errorMsg && (
-        <p className="mt-3 text-sm text-red-600 text-center">{errorMsg}</p>
+        <p className="mt-3 text-sm text-red-600 text-center font-share-tech">{errorMsg}</p>
       )}
       {saved && (
-        <p className="mt-3 text-sm text-green-600 text-center">Preferencias guardadas correctamente</p>
+        <p className="mt-3 text-sm text-green-600 text-center font-share-tech">Preferencias guardadas correctamente</p>
       )}
     </div>
   )

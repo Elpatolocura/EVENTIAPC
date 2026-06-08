@@ -40,47 +40,49 @@ export default function CambiarContrasena() {
       <div className="flex items-center gap-4 mb-6">
         <button
           type="button"
-          onClick={() => navigate('/configuracion')}
-          className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+          onClick={() => navigate(-1)}
+          className="cyber-btn"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">{t('cambiar_contrasena.titulo')}</h1>
+        <h1 className="font-orbitron font-extrabold uppercase text-2xl text-gray-900">{t('cambiar_contrasena.titulo')}</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 relative overflow-hidden space-y-5">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500" />
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('cambiar_contrasena.actual')}</label>
+          <label className="font-share-tech text-slate-600 uppercase text-xs block mb-1.5">{t('cambiar_contrasena.actual')}</label>
           <input
             type="password"
             value={form.actual}
             onChange={(e) => update('actual', e.target.value)}
             placeholder="••••••••"
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="cyber-input"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('cambiar_contrasena.nueva')}</label>
+          <label className="font-share-tech text-slate-600 uppercase text-xs block mb-1.5">{t('cambiar_contrasena.nueva')}</label>
           <input
             type="password"
             value={form.nueva}
             onChange={(e) => update('nueva', e.target.value)}
             placeholder="Mínimo 8 caracteres"
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="cyber-input"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('cambiar_contrasena.confirmar')}</label>
+          <label className="font-share-tech text-slate-600 uppercase text-xs block mb-1.5">{t('cambiar_contrasena.confirmar')}</label>
           <input
             type="password"
             value={form.confirmar}
             onChange={(e) => update('confirmar', e.target.value)}
             placeholder="Repite la nueva contraseña"
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="cyber-input"
           />
           {form.confirmar && form.nueva !== form.confirmar && (
             <p className="text-xs text-red-500 mt-1">{t('cambiar_contrasena.no_coinciden')}</p>
@@ -88,14 +90,14 @@ export default function CambiarContrasena() {
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 text-red-700 text-sm">
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 text-red-700 text-sm border-2 border-red-300 shadow-[2px_2px_0px_#000]">
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             {error}
           </div>
         )}
 
         {success && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-green-50 text-green-700 text-sm">
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-green-50 text-green-700 text-sm border-2 border-green-300 shadow-[2px_2px_0px_#000]">
             <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
@@ -106,7 +108,7 @@ export default function CambiarContrasena() {
         <button
           type="submit"
           disabled={saving}
-          className="w-full py-2.5 rounded-xl bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer"
+          className="cyber-btn-active"
         >
           {saving ? t('cambiar_contrasena.guardando') : t('cambiar_contrasena.guardar')}
         </button>

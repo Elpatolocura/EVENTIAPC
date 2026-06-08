@@ -1,24 +1,26 @@
-import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import { useNotification } from '../context/NotificationContext'
+import { useSidebar } from '../context/SidebarContext'
 import { supabase } from '../lib/supabase'
+import { useState } from 'react'
 
-export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+export default function Sidebar() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [showPremiumModal, setShowPremiumModal] = useState(false)
   const navigate = useNavigate()
   const { t } = useLanguage()
   const { isPremium } = useAuth()
   const { unreadCount } = useNotification()
+  const { open, close } = useSidebar()
 
   const menuItems = [
     { label: t('sidebar.inicio'), path: '/', icon: '🏠' },
     { label: t('sidebar.favoritos'), path: '/favoritos', icon: '⭐' },
     { label: t('sidebar.balance'), path: '/balance', icon: '💰' },
     { label: t('sidebar.chat'), path: '/chat', icon: '💬' },
-    { label: t('sidebar.chat_ia'), path: '/chat-ia', icon: '🤖' },
     { label: t('sidebar.mis_entradas'), path: '/mis-entradas', icon: '🎫' },
     { label: t('sidebar.mis_eventos'), path: '/mis-eventos', icon: '📅' },
     { label: t('sidebar.notificaciones'), path: '/notificaciones', icon: '🔔', badge: unreadCount },
@@ -28,13 +30,27 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   return (
     <>
-      <aside className={`${collapsed ? 'w-16' : 'w-64'} h-screen bg-white border-r border-gray-200 hidden md:flex flex-col fixed left-0 top-0 transition-all duration-200 z-30`}>
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          {!collapsed && <h1 className="text-xl font-bold text-indigo-600">Eventia</h1>}
-          <button type="button" onClick={onToggle}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer ml-auto">
+      {/* overlay */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:bg-black/30"
+          onClick={close}
+        />
+      )}
+
+      <aside
+        className={`fixed top-0 left-0 h-screen w-72 bg-[#f8f9fa] border-r-2 border-black shadow-[4px_0_0px_#000] z-50 flex flex-col transition-transform duration-300 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
+
+        <div className="p-6 border-b-2 border-black flex items-center justify-between">
+          <h1 className="font-orbitron font-extrabold uppercase text-xl">Eventia</h1>
+          <button type="button" onClick={close}
+            className="p-1.5 bg-[#f8f9fa] border-2 border-black rounded shadow-[2px_2px_0px_#000] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={collapsed ? "M13 5l7 7-7 7M5 5l7 7-7 7" : "M11 19l-7-7 7-7m8 14l-7-7 7-7"} />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
@@ -46,19 +62,19 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                 <NavLink
                   to={item.path}
                   end={item.path === '/'}
+                  onClick={close}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
                       isActive
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : 'text-gray-700 hover:bg-indigo-50 hover:text-indigo-700'
-                    } ${collapsed ? 'justify-center px-0' : ''}`
+                        ? 'bg-accent-light text-accent-dark border-2 border-black shadow-[1px_1px_0px_#000]'
+                        : 'text-slate-700 hover:bg-accent-light hover:text-accent-dark'
+                    }`
                   }
-                  title={collapsed ? item.label : undefined}
                 >
                   <span className="text-lg">{item.icon}</span>
-                  {!collapsed && <span>{item.label}</span>}
+                  <span className="font-orbitron font-bold text-xs">{item.label}</span>
                   {(item as any).badge > 0 && (
-                    <span className={`${collapsed ? 'absolute -top-1 -right-1' : 'ml-auto'} bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center`}>
+                    <span className="ml-auto bg-cyan-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                       {(item as any).badge > 99 ? '99+' : (item as any).badge}
                     </span>
                   )}
@@ -67,81 +83,71 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
             ))}
           </ul>
 
-          {/* Botón premium — solo se muestra si NO es premium */}
           {!isPremium && (
             <div className="px-3 mt-4">
               <button
                 type="button"
-                onClick={() => navigate('/premium')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold hover:from-amber-600 hover:to-orange-600 transition-all duration-200 shadow-sm cursor-pointer ${collapsed ? 'justify-center px-0' : ''}`}
-                title={collapsed ? 'Premium' : undefined}
+                onClick={() => { close(); navigate('/premium') }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold hover:from-amber-600 hover:to-orange-600 transition-all duration-200 shadow-sm cursor-pointer"
               >
                 <span className="text-lg">⭐</span>
-                {!collapsed && <span>{t('sidebar.premium')}</span>}
+                <span>{t('sidebar.premium')}</span>
               </button>
             </div>
           )}
 
-          {/* Badge de plan activo (Premium / VIP) */}
           {isPremium && (
             <div className="px-3 mt-4">
-              <div className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-sm ${collapsed ? 'justify-center px-0' : ''}`}
-                title={collapsed ? 'Premium activo' : undefined}>
+              <div className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-sm">
                 <span className="text-lg">⭐</span>
-                {!collapsed && <span>Plan Premium activo</span>}
+                <span>Plan Premium activo</span>
               </div>
             </div>
           )}
         </nav>
 
-        <div className="p-3 border-t border-gray-200 space-y-1">
-          {/* Botón crear evento — bloqueado si no es premium */}
+        <div className="p-3 border-t-2 border-black space-y-1">
           {isPremium ? (
             <NavLink
               to="/crear-evento"
               end
+              onClick={close}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
                   isActive
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-700 hover:bg-indigo-50 hover:text-indigo-700'
-                } ${collapsed ? 'justify-center px-0' : ''}`
+                    ? 'bg-accent-light text-accent-dark border-2 border-black shadow-[1px_1px_0px_#000]'
+                    : 'text-slate-700 hover:bg-accent-light hover:text-accent-dark'
+                }`
               }
-              title={collapsed ? t('sidebar.crear_evento') : undefined}
             >
               <span className="text-lg">➕</span>
-              {!collapsed && <span>{t('sidebar.crear_evento')}</span>}
+              <span className="font-orbitron font-bold text-xs">{t('sidebar.crear_evento')}</span>
             </NavLink>
           ) : (
             <button
               type="button"
               onClick={() => setShowPremiumModal(true)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-amber-50 hover:text-amber-600 transition-colors duration-200 cursor-pointer relative ${collapsed ? 'justify-center px-0' : ''}`}
-              title={collapsed ? t('sidebar.crear_evento') : undefined}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-accent-light hover:text-accent-dark transition-colors duration-200 cursor-pointer relative"
             >
               <span className="text-lg">➕</span>
-              {!collapsed && <span>{t('sidebar.crear_evento')}</span>}
-              {!collapsed && (
-                <span className="ml-auto text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-semibold">
-                  ⭐ Premium
-                </span>
-              )}
+              <span className="font-orbitron font-bold text-xs">{t('sidebar.crear_evento')}</span>
+              <span className="ml-auto text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-semibold">
+                ⭐ Premium
+              </span>
             </button>
           )}
 
           <button
             type="button"
             onClick={() => setShowConfirm(true)}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors duration-200 text-sm font-medium cursor-pointer ${collapsed ? 'justify-center px-0' : ''}`}
-            title={collapsed ? t('sidebar.cerrar_sesion') : undefined}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-700 hover:bg-accent-light hover:text-accent-dark transition-colors duration-200 text-sm font-medium cursor-pointer"
           >
             <span className="text-lg">🚪</span>
-            {!collapsed && <span>{t('sidebar.cerrar_sesion')}</span>}
+            <span className="font-orbitron font-bold text-xs">{t('sidebar.cerrar_sesion')}</span>
           </button>
         </div>
       </aside>
 
-      {/* Modal: requiere plan Premium */}
       {showPremiumModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-xl p-8 w-80 mx-4 text-center">
@@ -161,7 +167,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
               </button>
               <button
                 type="button"
-                onClick={() => { setShowPremiumModal(false); navigate('/premium') }}
+                onClick={() => { setShowPremiumModal(false); close(); navigate('/premium') }}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-sm font-semibold text-white hover:from-amber-600 hover:to-orange-600 transition-all cursor-pointer"
               >
                 Ver planes
@@ -171,7 +177,6 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
         </div>
       )}
 
-      {/* Modal: confirmar cierre de sesión */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-80 mx-4">

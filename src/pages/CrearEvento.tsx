@@ -284,83 +284,86 @@ export default function CrearEvento() {
   }
 
   const renderPreview = () => (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 lg:sticky lg:top-8">
-      <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Vista previa</h2>
-      <div className="rounded-xl overflow-hidden border border-gray-200">
-        {previewPhotos.length > 0 ? (
-          <div className="grid grid-cols-2 gap-0.5">
-            {previewPhotos.slice(0, 3).map((p) => (
-              <div
-                key={p.id}
-                className={`${previewPhotos.length === 1 ? 'col-span-2 h-52' : previewPhotos.length === 2 ? 'h-40' : previewPhotos.indexOf(p) === 0 ? 'col-span-2 h-44' : 'h-36'} bg-gray-100`}
-              >
-                <img src={p.url!} alt="" className="w-full h-full object-cover" />
-              </div>
-            ))}
-            {previewPhotos.length > 3 && (
-              <div className="h-36 bg-gray-900/60 flex items-center justify-center text-white text-sm font-medium">
-                +{previewPhotos.length - 3} más
-              </div>
-            )}
-            {previewPhotos.length === 2 && <div className="col-span-2 h-0" />}
-          </div>
-        ) : (
-          <div className="h-44 bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
-            Sin imagen
-          </div>
-        )}
-        <div className="p-4 space-y-2">
-          <h3 className="font-semibold text-gray-900 text-base leading-snug min-h-[1.25em]">
-            {form.titulo || 'Título del evento'}
-          </h3>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-            {form.fecha && (
-              <span className="flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {form.fecha}{form.hora ? ` • ${form.hora}` : ''}
-              </span>
-            )}
-            {(form.ciudad || form.direccion) && (
-              <span className="flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                {[form.ciudad, form.direccion].filter(Boolean).join(', ')}
-              </span>
-            )}
-          </div>
-          {form.categoria && (
-            <span className="inline-block px-2.5 py-0.5 rounded-full bg-indigo-50 text-[11px] font-medium text-indigo-600">
-              {form.categoria}
-            </span>
-          )}
-          {form.descripcion && (
-            <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
-              {form.descripcion}
-            </p>
-          )}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-            {form.precio ? (
-              <span className="text-sm font-bold text-gray-900">{currency === 'USD' ? `USD ${form.precio}` : `$${form.precio}`}</span>
-            ) : (
-              <span className="text-xs text-gray-400">Precio no definido</span>
-            )}
-            {form.aforo && (
-              <span className="text-xs text-gray-500">Aforo: {form.aforo}</span>
-            )}
-          </div>
-          {selectedServices.length > 0 && (
-            <div className="flex flex-wrap gap-1 pt-1">
-              {selectedServices.map((s) => (
-                <span key={s} className="px-2 py-0.5 rounded-full bg-green-50 text-[10px] font-medium text-green-700">
-                  {serviceOptions.find((o) => o.key === s)?.labelKey || s}
-                </span>
+    <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] overflow-hidden lg:sticky lg:top-8">
+      <div className="h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
+      <div className="p-5">
+        <h2 className="text-xs font-orbitron font-bold text-gray-400 uppercase tracking-wider mb-4">Vista previa</h2>
+        <div className="rounded-xl overflow-hidden border-2 border-black">
+          {previewPhotos.length > 0 ? (
+            <div className="grid grid-cols-2 gap-0.5">
+              {previewPhotos.slice(0, 3).map((p) => (
+                <div
+                  key={p.id}
+                  className={`${previewPhotos.length === 1 ? 'col-span-2 h-52' : previewPhotos.length === 2 ? 'h-40' : previewPhotos.indexOf(p) === 0 ? 'col-span-2 h-44' : 'h-36'} bg-gray-100`}
+                >
+                  <img src={p.url!} alt="" className="w-full h-full object-cover" />
+                </div>
               ))}
+              {previewPhotos.length > 3 && (
+                <div className="h-36 bg-gray-900/60 flex items-center justify-center text-white text-sm font-orbitron font-bold">
+                  +{previewPhotos.length - 3} más
+                </div>
+              )}
+              {previewPhotos.length === 2 && <div className="col-span-2 h-0" />}
+            </div>
+          ) : (
+            <div className="h-44 bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
+              Sin imagen
             </div>
           )}
+          <div className="p-4 space-y-2">
+            <h3 className="font-orbitron font-bold text-gray-900 text-base leading-snug min-h-[1.25em]">
+              {form.titulo || 'Título del evento'}
+            </h3>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+              {form.fecha && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {form.fecha}{form.hora ? ` • ${form.hora}` : ''}
+                </span>
+              )}
+              {(form.ciudad || form.direccion) && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {[form.ciudad, form.direccion].filter(Boolean).join(', ')}
+                </span>
+              )}
+            </div>
+            {form.categoria && (
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-400 text-[11px] font-orbitron font-bold text-white border border-black shadow-[2px_2px_0px_#000]">
+                {form.categoria}
+              </span>
+            )}
+            {form.descripcion && (
+              <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
+                {form.descripcion}
+              </p>
+            )}
+            <div className="flex items-center justify-between pt-2 border-t-2 border-black">
+              {form.precio ? (
+                <span className="text-sm font-orbitron font-bold text-gray-900">{currency === 'USD' ? `USD ${form.precio}` : `$${form.precio}`}</span>
+              ) : (
+                <span className="text-xs text-gray-400">Precio no definido</span>
+              )}
+              {form.aforo && (
+                <span className="text-xs text-gray-500">Aforo: {form.aforo}</span>
+              )}
+            </div>
+            {selectedServices.length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1">
+                {selectedServices.map((s) => (
+                  <span key={s} className="px-2 py-0.5 rounded-full bg-fuchsia-50 text-[10px] font-orbitron font-bold text-fuchsia-700 border border-black">
+                    {serviceOptions.find((o) => o.key === s)?.labelKey || s}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -373,21 +376,21 @@ export default function CrearEvento() {
           <button
             type="button"
             onClick={() => s.num < step && setStep(s.num)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all cursor-pointer ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-orbitron font-bold transition-all cursor-pointer border-2 border-black ${
               s.num === step
-                ? 'bg-indigo-600 text-white scale-110 shadow-md'
+                ? 'bg-gradient-to-r from-cyan-400 to-fuchsia-400 text-white shadow-[2px_2px_0px_#000] scale-110'
                 : s.num < step
-                  ? 'bg-green-500 text-white'
+                  ? 'bg-fuchsia-600 text-white shadow-[2px_2px_0px_#000]'
                   : 'bg-gray-200 text-gray-500'
             }`}
           >
             {s.num < step ? '✓' : s.num}
           </button>
-          <span className={`text-xs font-medium hidden sm:block ${s.num === step ? 'text-indigo-600' : 'text-gray-400'}`}>
+          <span className={`text-xs font-orbitron font-bold hidden sm:block ${s.num === step ? 'text-fuchsia-600' : 'text-gray-400'}`}>
             {s.label}
           </span>
           {i < steps.length - 1 && (
-            <div className={`w-8 h-0.5 ${s.num < step ? 'bg-green-500' : 'bg-gray-200'}`} />
+            <div className={`w-8 h-0.5 ${s.num < step ? 'bg-fuchsia-600' : 'bg-gray-200'}`} />
           )}
         </div>
       ))}
@@ -401,7 +404,7 @@ export default function CrearEvento() {
           <div className="space-y-5 animate-fadeIn">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-gray-700">Título del evento <span className="text-red-400">*</span></label>
+                <label className="font-share-tech text-slate-600 uppercase text-sm">Título del evento <span className="text-red-400">*</span></label>
                 <button
                   type="button"
                   onClick={async () => {
@@ -416,7 +419,7 @@ export default function CrearEvento() {
                     setImprovingTitle(false)
                   }}
                   disabled={improvingTitle}
-                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-orbitron font-bold text-fuchsia-600 bg-fuchsia-50 border border-black hover:bg-fuchsia-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {improvingTitle ? (
                     <><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Mejorando...</>
@@ -430,12 +433,12 @@ export default function CrearEvento() {
                 value={form.titulo}
                 onChange={(e) => update('titulo', e.target.value)}
                 placeholder="Ej: Festival de Música 2026"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="cyber-input w-full"
               />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-gray-700">Descripción <span className="text-red-400">*</span></label>
+                <label className="font-share-tech text-slate-600 uppercase text-sm">Descripción <span className="text-red-400">*</span></label>
                 <button
                   type="button"
                   onClick={async () => {
@@ -450,7 +453,7 @@ export default function CrearEvento() {
                     setImprovingDesc(false)
                   }}
                   disabled={improvingDesc || !form.titulo}
-                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-orbitron font-bold text-fuchsia-600 bg-fuchsia-50 border border-black hover:bg-fuchsia-100 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {improvingDesc ? (
                     <><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Mejorando...</>
@@ -464,17 +467,17 @@ export default function CrearEvento() {
                 onChange={(e) => update('descripcion', e.target.value)}
                 placeholder="Describe tu evento..."
                 rows={4}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                className="cyber-input w-full resize-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Categoría <span className="text-red-400">*</span></label>
+              <label className="font-share-tech text-slate-600 uppercase text-sm mb-1.5 block">Categoría <span className="text-red-400">*</span></label>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <select
                     value={form.categoria}
                     onChange={(e) => update('categoria', e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                    className="cyber-input w-full"
                   >
                     <option value="">Seleccionar categoría</option>
                     {[...predefinedCategories, ...userCategories.filter((c) => !predefinedCategories.includes(c))].map((cat) => (
@@ -485,7 +488,7 @@ export default function CrearEvento() {
                 <button
                   type="button"
                   onClick={() => setShowNewCategory(!showNewCategory)}
-                  className="px-3 py-3 rounded-xl border border-gray-200 text-gray-500 hover:text-indigo-600 hover:border-indigo-400 transition-colors cursor-pointer shrink-0"
+                  className="cyber-btn px-3 shrink-0"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -499,13 +502,13 @@ export default function CrearEvento() {
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     placeholder="Nombre de la nueva categoría"
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="cyber-input flex-1"
                   />
                   <button
                     type="button"
                     onClick={handleAddCategory}
                     disabled={!newCategory.trim()}
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+                    className="cyber-btn-active px-3 disabled:opacity-50"
                   >
                     Agregar
                   </button>
@@ -520,7 +523,7 @@ export default function CrearEvento() {
           <div className="space-y-5 animate-fadeIn">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Fecha del evento <span className="text-red-400">*</span></label>
+                <label className="font-share-tech text-slate-600 uppercase text-sm mb-1.5 block">Fecha del evento <span className="text-red-400">*</span></label>
                 <div className="flex gap-3">
                   <div className="flex-1 relative">
                     <input
@@ -543,7 +546,7 @@ export default function CrearEvento() {
                           update('fecha', `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`)
                         }
                       }}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent [color-scheme:light]"
+                      className="cyber-input w-full [color-scheme:light]"
                     />
                     <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -552,7 +555,7 @@ export default function CrearEvento() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Hora <span className="text-red-400">*</span></label>
+                <label className="font-share-tech text-slate-600 uppercase text-sm mb-1.5 block">Hora <span className="text-red-400">*</span></label>
                 <input
                   type="time"
                   value={(() => {
@@ -579,11 +582,11 @@ export default function CrearEvento() {
                       update('hora', '')
                     }
                   }}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent [color-scheme:light]"
+                  className="cyber-input w-full [color-scheme:light]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Duración</label>
+                <label className="font-share-tech text-slate-600 uppercase text-sm mb-1.5 block">Duración</label>
                 <div className="flex flex-wrap gap-1.5">
                   {[
                     { label: '30 min', value: '30 minutos' },
@@ -597,11 +600,7 @@ export default function CrearEvento() {
                       key={opt.value}
                       type="button"
                       onClick={() => update('duracion', form.duracion === opt.value ? '' : opt.value)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                        form.duracion === opt.value
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      className={`${form.duracion === opt.value ? 'cyber-btn-active' : 'cyber-btn'} px-3 py-1.5 text-xs`}
                     >
                       {opt.label}
                     </button>
@@ -609,11 +608,11 @@ export default function CrearEvento() {
                 </div>
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ciudad <span className="text-red-400">*</span></label>
+                <label className="font-share-tech text-slate-600 uppercase text-sm mb-1.5 block">Ciudad <span className="text-red-400">*</span></label>
                 <select
                   value={form.ciudad}
                   onChange={(e) => update('ciudad', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                  className="cyber-input w-full"
                 >
                   <option value="">Seleccionar ciudad</option>
                   {[
@@ -628,7 +627,7 @@ export default function CrearEvento() {
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Dirección</label>
+                <label className="font-share-tech text-slate-600 uppercase text-sm mb-1.5 block">Dirección</label>
                 <div className="relative">
                   <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -639,7 +638,7 @@ export default function CrearEvento() {
                     value={form.direccion}
                     onChange={(e) => update('direccion', e.target.value)}
                     placeholder="Cra 15 # 88-64"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="cyber-input w-full pl-10"
                   />
                 </div>
                 <p className="text-xs text-gray-400 mt-1">Ej: Cra 15 # 88-64, Centro</p>
@@ -653,7 +652,7 @@ export default function CrearEvento() {
           <div className="space-y-5 animate-fadeIn">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Precio <span className="text-red-400">*</span></label>
+                <label className="font-share-tech text-slate-600 uppercase text-sm mb-1.5 block">Precio <span className="text-red-400">*</span></label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-sm text-gray-400">{currency === 'COP' ? '$' : 'USD'}</span>
@@ -662,54 +661,54 @@ export default function CrearEvento() {
                       value={form.precio}
                       onChange={(e) => update('precio', e.target.value)}
                       placeholder="0 (dejar vacío = Gratis)"
-                      className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="cyber-input w-full pl-12"
                     />
                   </div>
-                  <div className="flex rounded-xl border border-gray-200 overflow-hidden shrink-0">
+                  <div className="flex rounded-xl border-2 border-black overflow-hidden shrink-0">
                     <button type="button" onClick={() => setCurrency('COP')}
-                      className={`px-3 py-3 text-xs font-semibold transition-colors cursor-pointer ${currency === 'COP' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                      className={`px-3 py-3 text-xs font-orbitron font-bold transition-colors cursor-pointer ${currency === 'COP' ? 'cyber-btn-active' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
                       COL$
                     </button>
                     <button type="button" onClick={() => setCurrency('USD')}
-                      className={`px-3 py-3 text-xs font-semibold transition-colors cursor-pointer ${currency === 'USD' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                      className={`px-3 py-3 text-xs font-orbitron font-bold transition-colors cursor-pointer ${currency === 'USD' ? 'cyber-btn-active' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
                       USD
                     </button>
                   </div>
                 </div>
                 {!form.precio && (
-                  <p className="text-xs text-green-600 mt-1">Este evento será gratuito</p>
+                  <p className="text-xs text-fuchsia-600 mt-1 font-orbitron font-bold">Este evento será gratuito</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Capacidad (aforo) <span className="text-red-400">*</span></label>
+                <label className="font-share-tech text-slate-600 uppercase text-sm mb-1.5 block">Capacidad (aforo) <span className="text-red-400">*</span></label>
                 <input
                   type="text"
                   value={form.aforo}
                   onChange={(e) => update('aforo', e.target.value)}
                   placeholder="Ej: 500"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="cyber-input w-full"
                 />
               </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Edad mínima</label>
+                  <label className="font-share-tech text-slate-600 uppercase text-sm mb-1.5 block">Edad mínima</label>
                   <input
                     type="text"
                     value={form.edadMinima}
                     onChange={(e) => update('edadMinima', e.target.value)}
                     placeholder="Ej: 18"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="cyber-input w-full"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Teléfono de contacto <span className="text-red-400">*</span></label>
+                <label className="font-share-tech text-slate-600 uppercase text-sm mb-1.5 block">Teléfono de contacto <span className="text-red-400">*</span></label>
                 <div className="flex">
-                  <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-gray-200 bg-gray-50 text-sm text-gray-500">🇨🇴 +57</span>
+                  <span className="inline-flex items-center px-3 rounded-l-xl border-2 border-r-0 border-black bg-gray-50 text-sm text-gray-500">🇨🇴 +57</span>
                   <input
                     type="tel"
                     value={form.telefonoContacto}
                     onChange={(e) => update('telefonoContacto', e.target.value)}
                     placeholder="300 123 4567"
-                    className="w-full px-4 py-3 rounded-r-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="cyber-input w-full rounded-l-none"
                   />
                 </div>
               </div>
@@ -721,17 +720,17 @@ export default function CrearEvento() {
         return (
           <div className="space-y-5 animate-fadeIn">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Fotos del evento <span className="text-red-400">*</span></label>
+              <label className="font-share-tech text-slate-600 uppercase text-sm mb-2 block">Fotos del evento <span className="text-red-400">*</span></label>
               <div className="grid grid-cols-4 gap-2">
                 {photos.map((p) => (
                   <div key={p.id} className="relative">
                     {p.url ? (
-                      <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                      <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 border-2 border-black">
                         <img src={p.url} alt="" className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => removePhoto(p.id)}
-                          className="absolute top-1 right-1 w-5 h-5 bg-black/50 text-white rounded-full flex items-center justify-center text-xs hover:bg-black/70 cursor-pointer"
+                          className="absolute top-1 right-1 w-5 h-5 bg-black/70 text-white rounded-full flex items-center justify-center text-xs hover:bg-black cursor-pointer border border-black"
                         >
                           ✕
                         </button>
@@ -741,13 +740,13 @@ export default function CrearEvento() {
                         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
                         onDragLeave={() => setDragOver(false)}
                         onDrop={(e) => handleDrop(e, p.id)}
-                        className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-gray-400 transition-colors cursor-pointer ${dragOver ? 'border-indigo-500 bg-indigo-50 text-indigo-500' : 'border-gray-200 hover:border-indigo-400 hover:text-indigo-500'}`}
+                        className={`aspect-square rounded-xl border-2 border-dashed border-black flex flex-col items-center justify-center gap-1 text-gray-400 transition-colors cursor-pointer ${dragOver ? 'bg-cyan-50 text-fuchsia-600 border-fuchsia-600' : 'hover:border-fuchsia-600 hover:text-fuchsia-600'}`}
                       >
                         <div onClick={() => handlePhotoUpload(p.id)} className="flex flex-col items-center justify-center gap-1 w-full h-full">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                           </svg>
-                          <span className="text-[10px]">Agregar</span>
+                          <span className="text-[10px] font-orbitron font-bold">Agregar</span>
                           <span className="text-[8px] text-gray-300">o arrastra</span>
                         </div>
                       </div>
@@ -758,18 +757,18 @@ export default function CrearEvento() {
                   <button
                     type="button"
                     onClick={addPhoto}
-                    className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors cursor-pointer"
+                    className="aspect-square rounded-xl border-2 border-dashed border-black flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-fuchsia-600 hover:text-fuchsia-600 transition-colors cursor-pointer"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    <span className="text-[10px]">Agregar</span>
+                    <span className="text-[10px] font-orbitron font-bold">Agregar</span>
                   </button>
                 )}
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Detalles adicionales</label>
+              <label className="font-share-tech text-slate-600 uppercase text-sm mb-2 block">Detalles adicionales</label>
               <div className="flex flex-wrap gap-4">
                 {[
                   { key: 'estacionamiento', label: 'Estacionamiento' },
@@ -781,7 +780,7 @@ export default function CrearEvento() {
                       type="checkbox"
                       checked={form[opt.key as keyof typeof form] as boolean}
                       onChange={(e) => update(opt.key, e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="w-4 h-4 rounded border-black text-fuchsia-600 focus:ring-fuchsia-500"
                     />
                     <span className="text-sm text-gray-700">{opt.label}</span>
                   </label>
@@ -789,18 +788,14 @@ export default function CrearEvento() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Servicios</label>
+              <label className="font-share-tech text-slate-600 uppercase text-sm mb-2 block">Servicios</label>
               <div className="flex flex-wrap gap-2">
                 {serviceOptions.map((svc) => (
                   <button
                     key={svc.key}
                     type="button"
                     onClick={() => toggleService(svc.key)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      selectedServices.includes(svc.key)
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                    className={`${selectedServices.includes(svc.key) ? 'cyber-btn-active' : 'cyber-btn'} px-3 py-1.5 text-xs`}
                   >
                     {svc.labelKey}
                   </button>
@@ -813,51 +808,54 @@ export default function CrearEvento() {
       case 5:
         return (
           <div className="space-y-5 animate-fadeIn">
-            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">Resumen del evento</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">📌</span>
-                  <div>
-                    <p className="text-xs text-gray-400">Título</p>
-                    <p className="text-sm font-medium text-gray-900">{form.titulo || '—'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">📅</span>
-                  <div>
-                    <p className="text-xs text-gray-400">Fecha y hora</p>
-                    <p className="text-sm font-medium text-gray-900">{form.fecha || '—'} {form.hora ? `• ${form.hora}` : ''}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">📍</span>
-                  <div>
-                    <p className="text-xs text-gray-400">Ubicación</p>
-                    <p className="text-sm font-medium text-gray-900">{[form.ciudad, form.direccion].filter(Boolean).join(', ') || '—'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">🎟️</span>
-                  <div>
-                    <p className="text-xs text-gray-400">Precio / Aforo</p>
-                    <p className="text-sm font-medium text-gray-900">{form.precio ? (currency === 'USD' ? `USD ${form.precio}` : `$${form.precio}`) : 'Gratis'}{form.aforo ? ` • ${form.aforo} personas` : ''}</p>
-                  </div>
-                </div>
-                {form.descripcion && (
-                  <div className="flex items-start gap-3">
-                    <span className="text-lg mt-0.5">📝</span>
+            <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] overflow-hidden">
+              <div className="h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
+              <div className="p-6">
+                <h3 className="text-sm font-orbitron font-bold text-gray-900 mb-4">Resumen del evento</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">📌</span>
                     <div>
-                      <p className="text-xs text-gray-400">Descripción</p>
-                      <p className="text-sm text-gray-600 line-clamp-3">{form.descripcion}</p>
+                      <p className="text-xs font-share-tech text-slate-600 uppercase">Título</p>
+                      <p className="text-sm font-orbitron font-bold text-gray-900">{form.titulo || '—'}</p>
                     </div>
                   </div>
-                )}
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">📅</span>
+                    <div>
+                      <p className="text-xs font-share-tech text-slate-600 uppercase">Fecha y hora</p>
+                      <p className="text-sm font-orbitron font-bold text-gray-900">{form.fecha || '—'} {form.hora ? `• ${form.hora}` : ''}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">📍</span>
+                    <div>
+                      <p className="text-xs font-share-tech text-slate-600 uppercase">Ubicación</p>
+                      <p className="text-sm font-orbitron font-bold text-gray-900">{[form.ciudad, form.direccion].filter(Boolean).join(', ') || '—'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">🎟️</span>
+                    <div>
+                      <p className="text-xs font-share-tech text-slate-600 uppercase">Precio / Aforo</p>
+                      <p className="text-sm font-orbitron font-bold text-gray-900">{form.precio ? (currency === 'USD' ? `USD ${form.precio}` : `$${form.precio}`) : 'Gratis'}{form.aforo ? ` • ${form.aforo} personas` : ''}</p>
+                    </div>
+                  </div>
+                  {form.descripcion && (
+                    <div className="flex items-start gap-3">
+                      <span className="text-lg mt-0.5">📝</span>
+                      <div>
+                        <p className="text-xs font-share-tech text-slate-600 uppercase">Descripción</p>
+                        <p className="text-sm text-gray-600 line-clamp-3">{form.descripcion}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {publishError && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+              <div className="p-3 rounded-xl bg-red-50 border-2 border-black shadow-[2px_2px_0px_#000] text-sm text-red-700 font-orbitron font-bold">
                 {publishError}
               </div>
             )}
@@ -866,7 +864,7 @@ export default function CrearEvento() {
               type="button"
               onClick={handlePublish}
               disabled={saving}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-sm font-semibold text-white hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-200 cursor-pointer flex items-center justify-center gap-2"
+              className="cyber-btn-active w-full py-3.5 text-sm"
             >
               {saving ? (
                 <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Publicando...</>
@@ -896,8 +894,8 @@ export default function CrearEvento() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{isEditing ? 'Editar Evento' : 'Crear Evento'}</h1>
-        <span className="text-xs text-gray-400">Paso {step} de 5</span>
+        <h1 className="text-2xl font-orbitron font-extrabold uppercase">{isEditing ? 'Editar Evento' : 'Crear Evento'}</h1>
+        <span className="text-xs text-gray-400 font-orbitron font-bold">Paso {step} de 5</span>
       </div>
 
       {renderStepIndicator()}
@@ -908,70 +906,76 @@ export default function CrearEvento() {
         </div>
 
         <div className="flex-1 min-w-0 order-1 lg:order-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            {renderStep()}
+          <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] overflow-hidden">
+            <div className="h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
+            <div className="p-6">
+              {renderStep()}
 
-            {step < 5 && (
-              <div className="mt-8 pt-5 border-t border-gray-100">
-                <div className="flex gap-3">
-                  {step > 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => { setValidationMsg(''); setStep(step - 1) }}
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center gap-1"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                      Anterior
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
+              {step < 5 && (
+                <div className="mt-8 pt-5 border-t-2 border-black">
+                  <div className="flex gap-3">
+                    {step > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => { setValidationMsg(''); setStep(step - 1) }}
+                        className="cyber-btn flex-1 px-4 py-2.5 text-sm flex items-center justify-center gap-1"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                        Anterior
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
                 onClick={() => navigate('/')}
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                        className="cyber-btn flex-1 px-4 py-2.5 text-sm"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => { setValidationMsg(''); handleSaveDraft() }}
+                      disabled={saving}
+                      className="cyber-btn px-4 py-2.5 text-sm flex items-center justify-center gap-1"
                     >
-                      Cancelar
+                      📄 Borrador
                     </button>
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      className="cyber-btn-active flex-1 px-4 py-2.5 text-sm flex items-center justify-center gap-1"
+                    >
+                      Siguiente
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                  </div>
+                  {validationMsg && (
+                    <p className="mt-2 text-xs text-red-500 text-center font-orbitron font-bold">{validationMsg}</p>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => { setValidationMsg(''); handleSaveDraft() }}
-                    disabled={saving}
-                    className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-center gap-1"
-                  >
-                    📄 Borrador
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 transition-colors cursor-pointer flex items-center justify-center gap-1"
-                  >
-                    Siguiente
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                  </button>
                 </div>
-                {validationMsg && (
-                  <p className="mt-2 text-xs text-red-500 text-center">{validationMsg}</p>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {publishedId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl p-8 mx-4 max-w-sm w-full text-center">
-            <span className="text-5xl block mb-4">🎉</span>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">¡Evento publicado!</h2>
-            <p className="text-sm text-gray-500 mb-6">Tu evento se ha creado y publicado correctamente.</p>
-            <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={() => navigate('/')}
-                className="w-full px-4 py-2.5 rounded-xl bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 transition-colors cursor-pointer"
-              >
-                Ir al inicio
-              </button>
+          <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] overflow-hidden mx-4 max-w-sm w-full text-center">
+            <div className="h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
+            <div className="p-8">
+              <span className="text-5xl block mb-4">🎉</span>
+              <h2 className="text-xl font-orbitron font-bold text-gray-900 mb-2">¡Evento publicado!</h2>
+              <p className="text-sm text-gray-500 mb-6">Tu evento se ha creado y publicado correctamente.</p>
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  className="cyber-btn-active w-full px-4 py-2.5"
+                >
+                  Ir al inicio
+                </button>
+              </div>
             </div>
           </div>
         </div>

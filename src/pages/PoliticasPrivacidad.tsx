@@ -37,31 +37,32 @@ export default function PoliticasPrivacidad() {
       <div className="flex items-center gap-4 mb-6">
         <button
           type="button"
-          onClick={() => navigate('/configuracion')}
-          className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+          onClick={() => navigate(-1)}
+          className="cyber-btn"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">{t('politicas.titulo')}</h1>
+        <h1 className="font-orbitron font-extrabold uppercase text-2xl text-gray-900">{t('politicas.titulo')}</h1>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
+      <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500" />
         {sections.map((s) => (
-          <details key={s.title} className="group p-5">
-            <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-semibold text-gray-900">
+          <details key={s.title} className="group border-b-2 border-black last:border-b-0">
+            <summary className="flex items-center justify-between cursor-pointer list-none p-5 font-orbitron font-bold text-sm text-gray-900 hover:text-fuchsia-600 transition-colors">
               {s.title}
-              <svg className="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-gray-400 group-open:text-fuchsia-600 group-open:rotate-180 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </summary>
-            <p className="mt-3 text-sm text-gray-600 leading-relaxed">{s.content}</p>
+            <p className="px-5 pb-5 font-share-tech text-sm text-slate-600 leading-relaxed">{s.content}</p>
           </details>
         ))}
       </div>
 
-      <p className="text-xs text-gray-400 mt-4 text-center">
+      <p className="font-share-tech text-xs text-slate-400 mt-4 text-center">
         {t('politicas.actualizacion')}
       </p>
     </div>

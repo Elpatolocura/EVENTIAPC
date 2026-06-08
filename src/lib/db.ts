@@ -223,7 +223,18 @@ export async function getChatMessages(eventId: string) {
   } catch { return [] }
 }
 
-export async function sendChatMessage(message: { event_id: string; user_id: string; text: string }) {
+export async function uploadChatMedia(file: File): Promise<string | null> {
+  try {
+    const ext = file.name.split('.').pop()
+    const filePath = `chat/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+    const { error } = await supabase.storage.from('chat-media').upload(filePath, file)
+    if (error) { console.error('Error al subir archivo:', error); return null }
+    const { data: { publicUrl } } = supabase.storage.from('chat-media').getPublicUrl(filePath)
+    return publicUrl
+  } catch (e) { console.error('Error al subir archivo:', e); return null }
+}
+
+export async function sendChatMessage(message: { event_id: string; user_id: string; text: string; reply_to?: number; media?: { url: string; type: string } }) {
   try {
     const { data, error } = await supabase.from('chat_messages').insert(message).select('*').single()
     if (error) console.error('Error al enviar mensaje:', error)

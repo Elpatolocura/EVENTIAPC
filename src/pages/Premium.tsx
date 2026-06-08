@@ -131,22 +131,22 @@ export default function Premium() {
     <div className="max-w-3xl mx-auto">
       <div className="text-center mb-10">
         <span className="text-4xl block mb-3">⭐</span>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('premium.titulo')}</h1>
+        <h1 className="text-3xl font-orbitron font-extrabold uppercase mb-2">{t('premium.titulo')}</h1>
         <p className="text-gray-500 max-w-xl mx-auto">{t('premium.subtitulo')}</p>
       </div>
 
       <div className="flex items-center justify-center gap-3 mb-10">
-        <span className={`text-sm font-medium ${!annual ? 'text-gray-900' : 'text-gray-400'}`}>{t('premium.mensual')}</span>
+        <span className={`text-sm font-orbitron font-bold ${!annual ? 'text-gray-900' : 'text-gray-400'}`}>{t('premium.mensual')}</span>
         <button
           type="button"
           onClick={() => setAnnual(!annual)}
-          className={`w-12 h-6 rounded-full p-0.5 transition-colors cursor-pointer ${annual ? 'bg-indigo-600' : 'bg-gray-300'}`}
+          className={`w-14 h-7 rounded-full border-2 border-black p-0.5 transition-colors cursor-pointer ${annual ? 'bg-gradient-to-r from-cyan-400 to-fuchsia-400' : 'bg-gray-300'}`}
         >
-          <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${annual ? 'translate-x-6' : ''}`} />
+          <div className={`w-5 h-5 bg-white rounded-full border border-black shadow-[2px_2px_0px_#000] transition-transform ${annual ? 'translate-x-7' : ''}`} />
         </button>
-        <span className={`text-sm font-medium ${annual ? 'text-gray-900' : 'text-gray-400'}`}>
+        <span className={`text-sm font-orbitron font-bold ${annual ? 'text-gray-900' : 'text-gray-400'}`}>
           {t('premium.anual')}
-          <span className="ml-1 text-[11px] text-green-600 font-semibold">{t('premium.ahorra')}</span>
+          <span className="ml-1 text-[11px] text-fuchsia-600 font-semibold">{t('premium.ahorra')}</span>
         </span>
       </div>
 
@@ -157,169 +157,178 @@ export default function Premium() {
           return (
             <div
               key={plan.name}
-              className={`relative bg-white rounded-2xl shadow-sm border-2 p-6 flex flex-col ${
-                isCurrentPlan ? 'border-green-500 shadow-lg' : isPremiumPlan ? 'border-indigo-500 shadow-lg' : 'border-gray-100'
+              className={`relative bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] overflow-hidden flex flex-col ${
+                isPremiumPlan ? 'bg-gradient-to-b from-[#f8f9fa] to-[#f8f9fa] border-cyan-400 border-fuchsia-400' : ''
               }`}
             >
+              <div className="h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
               {isCurrentPlan && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-green-600 text-white text-[11px] font-semibold">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-fuchsia-600 text-white text-[11px] font-orbitron font-bold border border-black shadow-[2px_2px_0px_#000] z-10">
                   ✓ Tu plan actual
                 </span>
               )}
               {!isCurrentPlan && isPremiumPlan && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-indigo-600 text-white text-[11px] font-semibold">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-400 text-white text-[11px] font-orbitron font-bold border border-black shadow-[2px_2px_0px_#000] z-10">
                   {t('premium.popular')}
                 </span>
               )}
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-gray-900">{planNames[plan.name] || plan.name}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{planDescs[plan.description] || plan.description}</p>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-gray-900">
-                    {annual && isPremiumPlan ? anualPremium.price : plan.price}
-                  </span>
-                  <span className="text-sm text-gray-500">{annual && isPremiumPlan ? anualPremium.period : plan.period}</span>
+              <div className="p-6">
+                <div className="mb-6">
+                  <h3 className="text-lg font-orbitron font-bold text-gray-900">{planNames[plan.name] || plan.name}</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">{planDescs[plan.description] || plan.description}</p>
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="text-3xl font-orbitron font-bold text-gray-900">
+                      {annual && isPremiumPlan ? anualPremium.price : plan.price}
+                    </span>
+                    <span className="text-sm text-gray-500">{annual && isPremiumPlan ? anualPremium.period : plan.period}</span>
+                  </div>
+                  {annual && isPremiumPlan && (
+                    <p className="text-[11px] text-fuchsia-600 font-medium mt-1">
+                      {t('premium.en_lugar_de')} <span className="line-through text-gray-400">{anualPremium.original}</span>
+                    </p>
+                  )}
+                  {isPremiumPlan && (
+                    <p className="text-[11px] text-gray-400 mt-1">{t('premium.prueba')}</p>
+                  )}
                 </div>
-                {annual && isPremiumPlan && (
-                  <p className="text-[11px] text-green-600 font-medium mt-1">
-                    {t('premium.en_lugar_de')} <span className="line-through text-gray-400">{anualPremium.original}</span>
-                  </p>
-                )}
-                {isPremiumPlan && (
-                  <p className="text-[11px] text-gray-400 mt-1">{t('premium.prueba')}</p>
-                )}
+
+                <button
+                  type="button"
+                  onClick={() => handleSubscribe(plan.name, plan.price)}
+                  disabled={isCurrentPlan}
+                  className={`w-full py-2.5 rounded-xl text-sm font-orbitron font-bold transition-colors mb-6 border-2 border-black ${
+                    isCurrentPlan
+                      ? 'bg-gray-100 text-gray-700 cursor-not-allowed shadow-[2px_2px_0px_#000]'
+                      : isPremiumPlan
+                      ? 'cyber-btn-active'
+                      : 'cyber-btn'
+                  }`}
+                >
+                  {isCurrentPlan ? '✓ Plan activo' : plan.price === '$0' ? t('premium.comenzar') : t('premium.suscribirse')}
+                </button>
+
+                <ul className="space-y-3 flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-gray-700">
+                      <svg className="w-4 h-4 text-fuchsia-600 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      {f}
+                    </li>
+                  ))}
+                  {plan.notIncluded.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-gray-400">
+                      <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
               </div>
-
-              <button
-                type="button"
-                onClick={() => handleSubscribe(plan.name, plan.price)}
-                disabled={isCurrentPlan}
-                className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors mb-6 ${
-                  isCurrentPlan
-                    ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                    : isPremiumPlan
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer'
-                    : 'border border-gray-200 text-gray-700 hover:bg-gray-50 cursor-pointer'
-                }`}
-              >
-                {isCurrentPlan ? '✓ Plan activo' : plan.price === '$0' ? t('premium.comenzar') : t('premium.suscribirse')}
-              </button>
-
-              <ul className="space-y-3 flex-1">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-gray-700">
-                    <svg className="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    {f}
-                  </li>
-                ))}
-                {plan.notIncluded.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-gray-400">
-                    <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
             </div>
           )
         })}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4 text-center">{t('premium.faq')}</h2>
-        <div className="max-w-2xl mx-auto space-y-2">
-          {faqs.map((faq) => (
-            <details key={faq.q} className="group">
-              <summary className="flex items-center justify-between p-3 rounded-xl bg-gray-50 cursor-pointer list-none text-sm font-medium text-gray-900 hover:bg-gray-100 transition-colors">
-                {faq.q}
-                <svg className="w-4 h-4 text-gray-500 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </summary>
-              <p className="p-3 text-sm text-gray-600 leading-relaxed">{faq.a}</p>
-            </details>
-          ))}
+      <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] overflow-hidden mb-8">
+        <div className="h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
+        <div className="p-6">
+          <h2 className="text-sm font-orbitron font-bold text-gray-900 mb-4 text-center">{t('premium.faq')}</h2>
+          <div className="max-w-2xl mx-auto space-y-2">
+            {faqs.map((faq) => (
+              <details key={faq.q} className="group">
+                <summary className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-black cursor-pointer list-none text-sm font-orbitron font-bold text-gray-900 group-open:text-fuchsia-600 hover:bg-gray-100 transition-colors">
+                  {faq.q}
+                  <svg className="w-4 h-4 text-gray-500 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <p className="p-3 text-sm text-gray-600 leading-relaxed">{faq.a}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </div>
 
       {showPayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
-            {paymentStep === 'success' ? (
-              <div className="text-center py-4">
-                <span className="text-4xl block mb-3">✅</span>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('premium.suscripcion_exitosa')}</h3>
-                <p className="text-sm text-gray-500 mb-6">{t('premium.bienvenido_a')} <strong>{showPayment}</strong>. {t('premium.disfruta_beneficios')}</p>
-                <button type="button" onClick={() => { setShowPayment(null); setPaymentMethod(''); navigate('/') }}
-                  className="px-6 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer">
-                  {t('premium.ir_app')}
-                </button>
-              </div>
-            ) : paymentStep === 'processing' ? (
-              <div className="text-center py-8">
-                <svg className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('premium.procesando_pago')}</h3>
-                <p className="text-sm text-gray-500">{t('premium.procesando_desc')}</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-lg font-semibold text-gray-900">{t('premium.metodo_pago')}</h3>
-                  <span className="px-3 py-1 rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600">{showPayment}</span>
+          <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] overflow-hidden w-full max-w-md mx-4">
+            <div className="h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
+            <div className="p-6">
+              {paymentStep === 'success' ? (
+                <div className="text-center py-4">
+                  <span className="text-4xl block mb-3">✅</span>
+                  <h3 className="text-lg font-orbitron font-bold text-gray-900 mb-1">{t('premium.suscripcion_exitosa')}</h3>
+                  <p className="text-sm text-gray-500 mb-6">{t('premium.bienvenido_a')} <strong>{showPayment}</strong>. {t('premium.disfruta_beneficios')}</p>
+                  <button type="button" onClick={() => { setShowPayment(null); setPaymentMethod(''); navigate('/') }}
+                    className="cyber-btn-active px-6 py-2">
+                    {t('premium.ir_app')}
+                  </button>
                 </div>
+              ) : paymentStep === 'processing' ? (
+                <div className="text-center py-8">
+                  <svg className="w-12 h-12 animate-spin text-fuchsia-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <h3 className="text-lg font-orbitron font-bold text-gray-900 mb-1">{t('premium.procesando_pago')}</h3>
+                  <p className="text-sm text-gray-500">{t('premium.procesando_desc')}</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-lg font-orbitron font-bold text-gray-900">{t('premium.metodo_pago')}</h3>
+                    <span className="px-3 py-1 rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-400 text-xs font-orbitron font-bold text-white border border-black shadow-[2px_2px_0px_#000]">{showPayment}</span>
+                  </div>
 
-                <div className="space-y-2 mb-6">
-                  {[
-                    { id: 'balance', label: `Mi Balance ($${currentBalance.toLocaleString('es-CO')})`, icon: '💰' },
-                    { id: 'card', label: 'Tarjeta de crédito/débito', icon: '💳' },
-                    { id: 'nequi', label: 'Nequi', icon: '📱' },
-                    { id: 'daviplata', label: 'Daviplata', icon: '🏦' },
-                    { id: 'pse', label: 'PSE', icon: '🏧' },
-                    { id: 'efecty', label: 'Efecty', icon: '📍' },
-                  ].map((method) => (
-                    <button
-                      key={method.id}
-                      type="button"
-                      onClick={() => setPaymentMethod(method.id)}
-                      className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                        paymentMethod === method.id
-                          ? 'border-indigo-500 bg-indigo-50/50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <span className="text-xl">{method.icon}</span>
-                      <span className="text-sm font-medium text-gray-900 flex-1">{method.label}</span>
-                      {paymentMethod === method.id && (
-                        <svg className="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
+                  <div className="space-y-2 mb-6">
+                    {[
+                      { id: 'balance', label: `Mi Balance ($${currentBalance.toLocaleString('es-CO')})`, icon: '💰' },
+                      { id: 'card', label: 'Tarjeta de crédito/débito', icon: '💳' },
+                      { id: 'nequi', label: 'Nequi', icon: '📱' },
+                      { id: 'daviplata', label: 'Daviplata', icon: '🏦' },
+                      { id: 'pse', label: 'PSE', icon: '🏧' },
+                      { id: 'efecty', label: 'Efecty', icon: '📍' },
+                    ].map((method) => (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => setPaymentMethod(method.id)}
+                        className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                          paymentMethod === method.id
+                            ? 'border-fuchsia-600 bg-fuchsia-50/50 shadow-[2px_2px_0px_#000]'
+                            : 'border-black hover:border-gray-400 bg-white'
+                        }`}
+                      >
+                        <span className="text-xl">{method.icon}</span>
+                        <span className="text-sm font-orbitron font-bold text-gray-900 flex-1">{method.label}</span>
+                        {paymentMethod === method.id && (
+                          <svg className="w-5 h-5 text-fuchsia-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => { setShowPayment(null); setPaymentMethod(''); setPaymentError('') }}
+                      className="cyber-btn flex-1 py-2.5">
+                      {t('premium.cancelar')}
                     </button>
-                  ))}
-                </div>
-
-                <div className="flex gap-3">
-                  <button type="button" onClick={() => { setShowPayment(null); setPaymentMethod(''); setPaymentError('') }}
-                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
-                    {t('premium.cancelar')}
-                  </button>
-                  <button type="button" onClick={() => { setPaymentError(''); setPaymentStep('processing') }}
-                    disabled={!paymentMethod}
-                    className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer">
-                    {t('premium.pagar')}
-                  </button>
-                </div>
-                {paymentError && (
-                  <p className="mt-3 text-sm text-red-600 text-center font-medium">{paymentError}</p>
-                )}
-              </>
-            )}
+                    <button type="button" onClick={() => { setPaymentError(''); setPaymentStep('processing') }}
+                      disabled={!paymentMethod}
+                      className="cyber-btn-active flex-1 py-2.5 disabled:opacity-40 disabled:cursor-not-allowed">
+                      {t('premium.pagar')}
+                    </button>
+                  </div>
+                  {paymentError && (
+                    <p className="mt-3 text-sm text-red-600 text-center font-orbitron font-bold">{paymentError}</p>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
