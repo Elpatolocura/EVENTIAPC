@@ -56,7 +56,11 @@ export default function Chat() {
   const [mutedChats, setMutedChats] = useState<Set<string>>(new Set())
   const aiStorageKey = `yulianis_chat_${user?.id || 'anon'}`
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'desconocido'
-  const [aiMessages, setAiMessages] = useState<any[]>(() => { try { const stored = localStorage.getItem(aiStorageKey); return stored ? JSON.parse(stored) : [{ id: 1, role: 'ai', content: `¡Ey ${userName}! 😏 Soy YULIANIS, tu asistente favorita de Eventia. Estoy aquí para ayudarte con lo que necesites... o para hacerte la vida un poquito más interesante. Cuéntame, ¿qué se te ofrece, hermos@?` }] } catch { return [{ id: 1, role: 'ai', content: `¡Ey ${userName}! 😏 Soy YULIANIS, tu asistente favorita de Eventia. Estoy aquí para ayudarte con lo que necesites... o para hacerte la vida un poquito más interesante. Cuéntame, ¿qué se te ofrece, hermos@?` }] } })
+  const isFem = user?.user_metadata?.genero === 'femenino'
+  const greeting = isFem
+    ? `¡Ey ${userName}! 😏 Soy YULIANIS, tu asistente favorita de Eventia. Estoy aquí para ayudarte con lo que necesites, hermosa... o para hacerte la vida un poquito más interesante. Cuéntame, ¿qué se te ofrece, reina?`
+    : `¡Ey ${userName}! 😏 Soy YULIANIS, tu asistente favorita de Eventia. Estoy aquí para ayudarte con lo que necesites, hermoso... o para hacerte la vida un poquito más interesante. Cuéntame, ¿qué se te ofrece, rey?`
+  const [aiMessages, setAiMessages] = useState<any[]>(() => { try { const stored = localStorage.getItem(aiStorageKey); return stored ? JSON.parse(stored) : [{ id: 1, role: 'ai', content: greeting }] } catch { return [{ id: 1, role: 'ai', content: greeting }] } })
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiEventsContext, setAiEventsContext] = useState('')

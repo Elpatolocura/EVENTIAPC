@@ -15,6 +15,7 @@ export default function Onboarding() {
   const [step, setStep] = useState(0)
   const [categories, setCategories] = useState<string[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [genero, setGenero] = useState('')
   const [location, setLocation] = useState('')
   const [locating, setLocating] = useState(false)
   const [selectedLang, setSelectedLang] = useState('es')
@@ -62,6 +63,7 @@ export default function Onboarding() {
         data: {
           onboarding_completed: true,
           categorias: selectedCategories,
+          genero,
           ubicacion: location,
           idioma: selectedLang,
         }
@@ -87,7 +89,8 @@ export default function Onboarding() {
           <h1 className="text-3xl font-orbitron font-extrabold uppercase text-gray-900">Eventia</h1>
           <p className="text-sm font-share-tech text-slate-600 mt-1">
             {step === 0 ? 'Elige tus categorías favoritas' :
-             step === 1 ? '¿Dónde te encuentras?' :
+             step === 1 ? '¿Cuál es tu género?' :
+             step === 2 ? '¿Dónde te encuentras?' :
              'Selecciona tu idioma'}
           </p>
         </div>
@@ -101,7 +104,7 @@ export default function Onboarding() {
 
           {/* Step indicators */}
           <div className="flex items-center gap-2 mb-6">
-            {[0, 1, 2].map((i) => (
+            {[0, 1, 2, 3].map((i) => (
               <div key={i} className={`flex-1 h-2 rounded-full border border-black transition-colors ${step >= i ? 'bg-gradient-to-r from-cyan-400 to-fuchsia-400' : 'bg-gray-200'}`} />
             ))}
           </div>
@@ -129,8 +132,38 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 1: Location */}
+          {/* Step 1: Gender */}
           {step === 1 && (
+            <div className="space-y-3">
+              <p className="text-xs font-share-tech text-slate-500 uppercase mb-3">¿Cuál es tu género?</p>
+              {['masculino', 'femenino'].map((g) => (
+                <button key={g} type="button" onClick={() => setGenero(g)}
+                  className={`w-full flex items-center justify-center gap-3 p-4 rounded-xl border-2 text-left transition-all cursor-pointer shadow-[2px_2px_0px_#000] ${
+                    genero === g
+                      ? 'cyber-btn-active border-2 border-black'
+                      : 'cyber-btn border-black'
+                  }`}>
+                  <span className="text-sm font-orbitron font-bold uppercase">{g}</span>
+                  {genero === g && (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                  )}
+                </button>
+              ))}
+              <div className="flex gap-3 mt-4">
+                <button type="button" onClick={() => setStep(0)}
+                  className="cyber-btn flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">
+                  ← Atrás
+                </button>
+                <button type="button" onClick={() => setStep(2)}
+                  className="cyber-btn-active flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">
+                  Continuar →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Location */}
+          {step === 2 && (
             <div className="space-y-4">
               <p className="text-xs font-share-tech text-slate-500 uppercase mb-3">Ingresa tu ubicación para ver eventos cercanos</p>
               <div>
@@ -148,11 +181,11 @@ export default function Onboarding() {
                 {locating ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}
               </button>
               <div className="flex gap-3">
-                <button type="button" onClick={() => setStep(0)}
+                <button type="button" onClick={() => setStep(1)}
                   className="cyber-btn flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">
                   ← Atrás
                 </button>
-                <button type="button" onClick={() => setStep(2)}
+                <button type="button" onClick={() => setStep(3)}
                   className="cyber-btn-active flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">
                   Continuar →
                 </button>
@@ -160,8 +193,8 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 2: Language */}
-          {step === 2 && (
+          {/* Step 3: Language */}
+          {step === 3 && (
             <div className="space-y-3">
               <p className="text-xs font-share-tech text-slate-500 uppercase mb-3">¿En qué idioma prefieres ver la app?</p>
               {languages.map((lang) => (
@@ -179,7 +212,7 @@ export default function Onboarding() {
                 </button>
               ))}
               <div className="flex gap-3 mt-4">
-                <button type="button" onClick={() => setStep(1)}
+                <button type="button" onClick={() => setStep(2)}
                   className="cyber-btn flex-1 py-2.5 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">
                   ← Atrás
                 </button>
