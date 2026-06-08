@@ -178,32 +178,44 @@ export default function Sidebar() {
       )}
 
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-80 mx-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">{t('sidebar.cerrar_sesion')}</h2>
-            <p className="text-sm text-gray-600 mb-6">{t('sidebar.cerrar_sesion_confirm')}</p>
-            <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => setShowConfirm(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                {t('sidebar.cancelar')}
-              </button>
-              <button
-                type="button"
-                onClick={async () => { 
-                  await supabase.auth.signOut();
-                  navigate('/login'); 
-                  setShowConfirm(false); 
-                }}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors cursor-pointer"
-              >
-                {t('sidebar.cerrar_sesion')}
-              </button>
+        <>
+          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowConfirm(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[6px_6px_0px_#000] p-6 max-w-sm w-full relative animate-slide-up overflow-hidden">
+              <div className="absolute inset-0 cyber-grid pointer-events-none opacity-[0.06]" />
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500 rounded-t-xl" />
+              <div className="relative z-10 flex flex-col items-center text-center pt-2">
+                <div className="w-16 h-16 rounded-full border-2 border-black bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center mb-4 shadow-[3px_3px_0px_#000]">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </div>
+                <h3 className="font-orbitron font-extrabold text-lg text-gray-900 mb-1">{t('sidebar.cerrar_sesion')}</h3>
+                <p className="font-share-tech text-sm text-slate-500 mb-6">{t('sidebar.cerrar_sesion_confirm')}</p>
+                <div className="flex gap-3 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(false)}
+                    className="cyber-btn flex-1 py-3 rounded-xl text-sm font-bold cursor-pointer"
+                  >
+                    {t('sidebar.cancelar')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => { 
+                      await supabase.auth.signOut();
+                      navigate('/login'); 
+                      setShowConfirm(false); 
+                    }}
+                    className="cyber-btn-danger flex-1 py-3 rounded-xl text-sm font-bold cursor-pointer"
+                  >
+                    {t('sidebar.cerrar_sesion')}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </>
   )
