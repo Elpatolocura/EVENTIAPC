@@ -162,17 +162,21 @@ export default function Premium() {
               }`}
             >
               <div className="h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
-              {isCurrentPlan && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-fuchsia-700 text-white text-xs font-orbitron font-extrabold border-2 border-black shadow-[3px_3px_0px_#000] z-10 tracking-wide">
-                  ✓ Tu plan actual
-                </span>
-              )}
-              {!isCurrentPlan && isPremiumPlan && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white text-xs font-orbitron font-extrabold border-2 border-black shadow-[3px_3px_0px_#000] z-10 tracking-wide">
-                  {t('premium.popular')}
-                </span>
-              )}
               <div className="p-6">
+                {isCurrentPlan && (
+                  <div className="text-center mb-4">
+                    <span className="inline-block px-6 py-2 rounded-xl bg-fuchsia-700 text-white text-sm font-orbitron font-extrabold border-2 border-black shadow-[3px_3px_0px_#000] tracking-wide">
+                      ✓ Tu plan actual
+                    </span>
+                  </div>
+                )}
+                {!isCurrentPlan && isPremiumPlan && (
+                  <div className="text-center mb-4">
+                    <span className="inline-block px-6 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white text-sm font-orbitron font-extrabold border-2 border-black shadow-[3px_3px_0px_#000] tracking-wide">
+                      {t('premium.popular')}
+                    </span>
+                  </div>
+                )}
                 <div className="mb-6 text-center">
                   <h3 className="text-xl font-orbitron font-extrabold uppercase text-accent-secondary tracking-wide">{planNames[plan.name] || plan.name}</h3>
                   <p className="text-xs text-gray-500 mt-0.5">{planDescs[plan.description] || plan.description}</p>
