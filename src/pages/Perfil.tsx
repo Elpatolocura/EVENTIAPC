@@ -116,7 +116,8 @@ export default function Perfil() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
         <div className="relative h-48 sm:h-56 bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-purple-600 overflow-hidden">
           {profile?.cover_url && <img src={profile.cover_url} alt="" className="w-full h-full object-cover" />}
           <div className="absolute inset-0 bg-black/10" />
