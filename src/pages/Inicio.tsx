@@ -26,7 +26,11 @@ export default function Inicio() {
 
   useEffect(() => {
     if (!user) return
-    getProfile(user.id).then(setProfile)
+    getProfile(user.id).then((p) => {
+      setProfile(p)
+      if (p?.ubicacion && !userCity) setUserCity(p.ubicacion)
+      if (p?.categorias?.length) setSelectedCategories(new Set(p.categorias))
+    })
   }, [user])
 
   useEffect(() => {

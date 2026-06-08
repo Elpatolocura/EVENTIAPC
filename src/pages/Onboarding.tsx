@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { getAllEvents, updateProfile } from '../lib/db'
@@ -10,7 +9,6 @@ const languages = [
 ]
 
 export default function Onboarding() {
-  const navigate = useNavigate()
   const { user } = useAuth()
   const { setLang } = useLanguage()
   const [step, setStep] = useState(0)
@@ -59,18 +57,19 @@ export default function Onboarding() {
     setSaving(true)
     setError('')
     try {
-      await updateProfile(user.id, {
+      const { error: saveError } = await updateProfile(user.id, {
         categorias: selectedCategories,
         ubicacion: location,
         idioma: selectedLang,
         nombre: user.user_metadata?.full_name || '',
       })
+      if (saveError) { setError(saveError.message); setSaving(false); return }
       setLang(selectedLang)
-      navigate('/', { replace: true })
+      window.location.href = '/'
     } catch (e: any) {
       setError(e.message)
+      setSaving(false)
     }
-    setSaving(false)
   }
 
   return (
