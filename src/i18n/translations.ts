@@ -119,6 +119,7 @@ const translations: Record<string, Record<string, string>> = {
     'perfil.no_seguidores': 'No se encontraron seguidores',
     'perfil.seguir': 'Seguir',
     'perfil.de': 'de',
+    'perfil.no_eventos': 'No has asistido a ningún evento aún.',
 
     'config.titulo': 'Configuración',
     'config.editar_perfil': 'Editar perfil',
@@ -500,6 +501,7 @@ const translations: Record<string, Record<string, string>> = {
     'perfil.no_seguidores': 'No followers found',
     'perfil.seguir': 'Follow',
     'perfil.de': 'of',
+    'perfil.no_eventos': 'You haven\'t attended any events yet.',
 
     'config.titulo': 'Settings',
     'config.editar_perfil': 'Edit profile',

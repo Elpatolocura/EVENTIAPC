@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
-import { getProfile, getProfiles, getFollowers, getFollowing, getEventsCount, getTicketsCount, followUser, unfollowUser } from '../lib/db'
+import { getProfile, getProfiles, getFollowers, getFollowing, getEventsCount, getTicketsCount, getTickets, followUser, unfollowUser } from '../lib/db'
+import { formatPrice } from '../lib/price'
 
 export default function Perfil() {
   const { user } = useAuth()
@@ -19,6 +20,9 @@ export default function Perfil() {
   const [eventsAttended, setEventsAttended] = useState(0)
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({})
   const [followerProfiles, setFollowerProfiles] = useState<Record<string, any>>({})
+  const [showEventsModal, setShowEventsModal] = useState(false)
+  const [eventsList, setEventsList] = useState<any[]>([])
+  const [selectedPastEvent, setSelectedPastEvent] = useState<any>(null)
 
   const targetId = id || user?.id
   const isOwnProfile = !id || id === user?.id
@@ -162,11 +166,18 @@ export default function Perfil() {
               <p className="text-lg font-bold text-gray-900">{eventsCreated}</p>
               <p className="text-xs text-gray-500">{t('perfil.eventos_creados')}</p>
             </div>
-            <div className="flex-1 bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 relative overflow-hidden text-center">
+            <button type="button" onClick={async () => {
+              if (!targetId) return
+              setShowEventsModal(true)
+              const tickets = await getTickets(targetId)
+              setEventsList(tickets || [])
+              setSelectedPastEvent(null)
+            }}
+              className="flex-1 bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] p-6 relative overflow-hidden text-center hover:bg-gray-100 transition-colors cursor-pointer">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-purple-600" />
               <p className="text-lg font-bold text-gray-900">{eventsAttended}</p>
               <p className="text-xs text-gray-500">{t('perfil.eventos_asistidos')}</p>
-            </div>
+            </button>
           </div>
 
           <div className="mt-5 space-y-4">
@@ -201,6 +212,111 @@ export default function Perfil() {
             <span>⚙️</span> Configuración
           </button>
         </div>
+      )}
+
+      {showEventsModal && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => { setShowEventsModal(false); setSelectedPastEvent(null) }} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[6px_6px_0px_#000] p-6 w-full max-w-lg relative overflow-hidden animate-slide-up max-h-[85vh] flex flex-col">
+              <div className="absolute inset-0 cyber-grid pointer-events-none opacity-[0.06]" />
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500 rounded-t-xl" />
+              <div className="relative z-10 flex flex-col flex-1 min-h-0">
+                <div className="flex items-center justify-between mb-4 shrink-0">
+                  <h3 className="text-lg font-orbitron font-extrabold uppercase text-gray-900">
+                    {selectedPastEvent ? selectedPastEvent.title : t('perfil.eventos_asistidos')}
+                  </h3>
+                  <button type="button" onClick={() => { setShowEventsModal(false); setSelectedPastEvent(null) }}
+                    className="p-1.5 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+
+                {selectedPastEvent ? (
+                  <div className="flex-1 overflow-y-auto space-y-4">
+                    {selectedPastEvent.cover && (
+                      <div className="rounded-xl overflow-hidden border-2 border-black">
+                        <img src={selectedPastEvent.cover} alt={selectedPastEvent.title} className="w-full h-48 object-cover" />
+                      </div>
+                    )}
+                    <div className="p-4 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_#000] space-y-3">
+                      <div>
+                        <span className="text-xs font-share-tech text-slate-500 uppercase">{t('evento.fecha')}</span>
+                        <p className="text-sm font-orbitron font-bold text-gray-900">{selectedPastEvent.date ? new Date(selectedPastEvent.date).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</p>
+                      </div>
+                      {selectedPastEvent.hora && (
+                        <div>
+                          <span className="text-xs font-share-tech text-slate-500 uppercase">{t('evento.hora')}</span>
+                          <p className="text-sm font-orbitron font-bold text-gray-900">{selectedPastEvent.hora}</p>
+                        </div>
+                      )}
+                      {selectedPastEvent.address && (
+                        <div>
+                          <span className="text-xs font-share-tech text-slate-500 uppercase">{t('evento.direccion')}</span>
+                          <p className="text-sm font-orbitron font-bold text-gray-900">{selectedPastEvent.address}</p>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-xs font-share-tech text-slate-500 uppercase">{t('evento.tipo_entrada')}</span>
+                        <p className="text-sm font-orbitron font-bold text-gray-900">{selectedPastEvent.type || 'General'}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs font-share-tech text-slate-500 uppercase">{t('evento.precio')}</span>
+                        <p className="text-sm font-orbitron font-bold text-gray-900">{selectedPastEvent.price ? formatPrice(String(selectedPastEvent.price)) : 'Gratis'}</p>
+                      </div>
+                      {selectedPastEvent.desc && (
+                        <div>
+                          <span className="text-xs font-share-tech text-slate-500 uppercase">{t('evento.acerca')}</span>
+                          <p className="text-sm font-share-tech text-slate-700 mt-1 leading-relaxed">{selectedPastEvent.desc}</p>
+                        </div>
+                      )}
+                    </div>
+                    <button type="button" onClick={() => setSelectedPastEvent(null)}
+                      className="cyber-btn w-full py-3 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">
+                      ← {t('evento.volver')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto space-y-2">
+                    {eventsList.length === 0 ? (
+                      <div className="text-center py-8">
+                        <span className="text-4xl block mb-3">🎫</span>
+                        <p className="text-sm font-share-tech text-slate-500">{t('perfil.no_eventos')}</p>
+                      </div>
+                    ) : (
+                      eventsList.map((ticket: any) => {
+                        const ev = ticket.events
+                        if (!ev) return null
+                        const isActive = ev.date ? new Date(ev.date) >= new Date(new Date().toDateString()) : false
+                        return (
+                          <div key={ticket.id} className="flex items-center gap-3 p-3 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_#000] hover:shadow-[3px_3px_0px_#000] transition-all">
+                            <div className="w-16 h-16 rounded-xl border-2 border-black bg-gray-100 shrink-0 overflow-hidden">
+                              {ev.cover ? <img src={ev.cover} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xl">🎟️</div>}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-orbitron font-bold text-gray-900 truncate">{ev.title}</p>
+                              <p className="text-xs font-share-tech text-slate-500 truncate">{ev.date ? new Date(ev.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</p>
+                            </div>
+                            <button type="button" onClick={() => {
+                              if (isActive) {
+                                navigate(`/evento/${ev.id}`)
+                              } else {
+                                setSelectedPastEvent(ev)
+                              }
+                            }}
+                              className="w-9 h-9 rounded-lg border-2 border-black bg-[#f8f9fa] shadow-[2px_2px_0px_#000] hover:shadow-[3px_3px_0px_#000] hover:translate-x-[-0.5px] hover:translate-y-[-0.5px] flex items-center justify-center transition-all cursor-pointer shrink-0">
+                              <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            </button>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {showFollowers && (
