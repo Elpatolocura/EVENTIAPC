@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
-import { getAllEvents, updateProfile } from '../lib/db'
+import { supabase } from '../lib/supabase'
+import { getAllEvents } from '../lib/db'
 
 const languages = [
   { code: 'es', label: 'Español', flag: '🇪🇸' },
@@ -57,16 +58,16 @@ export default function Onboarding() {
     setSaving(true)
     setError('')
     try {
-      const updates = {
-        categorias: selectedCategories,
-        ubicacion: location,
-        idioma: selectedLang,
-        nombre: user.user_metadata?.full_name || '',
-      }
-      const { error: saveError } = await updateProfile(user.id, updates)
-      if (saveError) {
-        console.error('Onboarding save error:', saveError)
-        setError(`Error al guardar: ${saveError.message}`)
+      const { error: metaError } = await supabase.auth.updateUser({
+        data: {
+          onboarding_completed: true,
+          categorias: selectedCategories,
+          ubicacion: location,
+          idioma: selectedLang,
+        }
+      })
+      if (metaError) {
+        setError(`Error: ${metaError.message}`)
         setSaving(false)
         return
       }

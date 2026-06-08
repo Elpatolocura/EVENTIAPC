@@ -1,7 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
-import { useState, useEffect } from 'react'
-import { supabase } from './lib/supabase'
 import { NotificationProvider } from './context/NotificationContext'
 import ToastContainer from './components/ToastContainer'
 import Sidebar from './components/Sidebar'
@@ -61,24 +59,11 @@ function HamburgerButton() {
 function AppContent() {
   const { user, loading } = useAuth()
   const location = useLocation()
-  const [needsOnboarding, setNeedsOnboarding] = useState(false)
-  const [checkingOnboarding, setCheckingOnboarding] = useState(true)
   const authRoutes = ['/login', '/crear-cuenta', '/recuperar-clave', '/onboarding']
   const isAuthRoute = authRoutes.includes(location.pathname)
+  const needsOnboarding = user && !user.user_metadata?.onboarding_completed && location.pathname !== '/onboarding'
 
-  useEffect(() => {
-    if (!user) { setCheckingOnboarding(false); return }
-    supabase.from('profiles').select('categorias').eq('id', user.id).maybeSingle().then(({ data }) => {
-      if (!data || !data.categorias || data.categorias.length === 0) {
-        setNeedsOnboarding(true)
-      } else {
-        setNeedsOnboarding(false)
-      }
-      setCheckingOnboarding(false)
-    })
-  }, [user])
-
-  if (loading || checkingOnboarding) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <PageSkeleton />
@@ -88,7 +73,7 @@ function AppContent() {
 
   if (!user && !isAuthRoute) return <Navigate to="/login" replace />
   if (user && isAuthRoute && location.pathname !== '/onboarding') return <Navigate to="/" replace />
-  if (user && needsOnboarding && location.pathname !== '/onboarding') {
+  if (user && needsOnboarding) {
     return <Navigate to="/onboarding" replace />
   }
 
