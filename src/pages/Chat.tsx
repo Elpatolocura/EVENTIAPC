@@ -54,7 +54,8 @@ export default function Chat() {
   const [toastMsg, setToastMsg] = useState('')
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [mutedChats, setMutedChats] = useState<Set<string>>(new Set())
-  const [aiMessages, setAiMessages] = useState<any[]>(() => { try { const stored = localStorage.getItem('yulianis_chat'); return stored ? JSON.parse(stored) : [{ id: 1, role: 'ai', content: '¡Hola! Soy YULIANIS, tu asistente inteligente de Eventia. Puedo consultar eventos, ayudarte a usar la plataforma o resolver tus dudas. ¿En qué te ayudo?' }] } catch { return [{ id: 1, role: 'ai', content: '¡Hola! Soy YULIANIS, tu asistente inteligente de Eventia. Puedo consultar eventos, ayudarte a usar la plataforma o resolver tus dudas. ¿En qué te ayudo?' }] } })
+  const aiStorageKey = `yulianis_chat_${user?.id || 'anon'}`
+  const [aiMessages, setAiMessages] = useState<any[]>(() => { try { const stored = localStorage.getItem(aiStorageKey); return stored ? JSON.parse(stored) : [{ id: 1, role: 'ai', content: '¡Hola! Soy YULIANIS, tu asistente inteligente de Eventia. Puedo consultar eventos, ayudarte a usar la plataforma o resolver tus dudas. ¿En qué te ayudo?' }] } catch { return [{ id: 1, role: 'ai', content: '¡Hola! Soy YULIANIS, tu asistente inteligente de Eventia. Puedo consultar eventos, ayudarte a usar la plataforma o resolver tus dudas. ¿En qué te ayudo?' }] } })
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiEventsContext, setAiEventsContext] = useState('')
@@ -373,7 +374,7 @@ export default function Chat() {
   }, [])
 
   useEffect(() => {
-    if (aiMessages.length > 0) localStorage.setItem('yulianis_chat', JSON.stringify(aiMessages))
+    if (aiMessages.length > 0) localStorage.setItem(aiStorageKey, JSON.stringify(aiMessages))
     setTimeout(() => aiMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
   }, [aiMessages])
 
