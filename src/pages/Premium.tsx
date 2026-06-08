@@ -163,12 +163,12 @@ export default function Premium() {
             >
               <div className="h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
               {isCurrentPlan && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-fuchsia-600 text-white text-[11px] font-orbitron font-bold border border-black shadow-[2px_2px_0px_#000] z-10">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-fuchsia-700 text-white text-xs font-orbitron font-extrabold border-2 border-black shadow-[3px_3px_0px_#000] z-10 tracking-wide">
                   ✓ Tu plan actual
                 </span>
               )}
               {!isCurrentPlan && isPremiumPlan && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-cyan-400 to-fuchsia-400 text-white text-[11px] font-orbitron font-bold border border-black shadow-[2px_2px_0px_#000] z-10">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white text-xs font-orbitron font-extrabold border-2 border-black shadow-[3px_3px_0px_#000] z-10 tracking-wide">
                   {t('premium.popular')}
                 </span>
               )}
