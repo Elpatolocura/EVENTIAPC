@@ -161,14 +161,11 @@ export default function Premium() {
                 isPremiumPlan ? 'bg-gradient-to-b from-[#f8f9fa] to-[#f8f9fa] border-cyan-400 border-fuchsia-400' : ''
               }`}
             >
-              <div className="flex items-center justify-center">
-                <div className="flex-1 h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
-                <div className={`shrink-0 px-5 py-1.5 rounded-full border-2 border-black shadow-[2px_2px_0px_#000] text-sm font-orbitron font-bold -translate-y-1/2 bg-[#f8f9fa] ${
-                  isPremiumPlan ? 'text-fuchsia-700' : 'text-gray-700'
-                }`}>
-                  {planNames[plan.name] || plan.name}
-                </div>
-                <div className="flex-1 h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
+              <div className="h-1 bg-gradient-to-r from-cyan-400 to-fuchsia-400" />
+              <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 px-5 py-1 rounded-full border-2 border-black shadow-[2px_2px_0px_#000] text-sm font-orbitron font-bold bg-[#f8f9fa] z-10 ${
+                isPremiumPlan ? 'text-fuchsia-700' : 'text-gray-700'
+              }">
+                {planNames[plan.name] || plan.name}
               </div>
               {isCurrentPlan && (
                 <span className="absolute top-2 right-3 px-3 py-0.5 rounded-full bg-fuchsia-600 text-white text-[10px] font-orbitron font-bold border border-black shadow-[2px_2px_0px_#000] z-10">
@@ -180,7 +177,7 @@ export default function Premium() {
                   {t('premium.popular')}
                 </span>
               )}
-              <div className="p-6 pt-4">
+              <div className="p-6 pt-6">
                 <div className="mb-6">
                   <p className="text-xs text-gray-500 mt-0.5">{planDescs[plan.description] || plan.description}</p>
                   <div className="mt-4 flex items-baseline gap-1">
