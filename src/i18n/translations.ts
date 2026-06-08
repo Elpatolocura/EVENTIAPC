@@ -70,6 +70,10 @@ const translations: Record<string, Record<string, string>> = {
     'evento.cantidad': 'Cantidad',
     'evento.nombre_invitado': 'Nombre del invitado',
     'evento.tipo_entrada': 'Tipo de entrada',
+    'evento.boletas_vendidas': 'Boletas vendidas',
+    'evento.capacidad': 'Capacidad',
+    'evento.disponibles': 'Disponibles',
+    'evento.precio': 'Precio',
 
     'pago.metodo': 'Método de pago',
     'pago.balance': 'Balance disponible',
@@ -447,6 +451,10 @@ const translations: Record<string, Record<string, string>> = {
     'evento.cantidad': 'Quantity',
     'evento.nombre_invitado': 'Guest name',
     'evento.tipo_entrada': 'Ticket type',
+    'evento.boletas_vendidas': 'Tickets sold',
+    'evento.capacidad': 'Capacity',
+    'evento.disponibles': 'Available',
+    'evento.precio': 'Price',
 
     'pago.metodo': 'Payment method',
     'pago.balance': 'Available balance',

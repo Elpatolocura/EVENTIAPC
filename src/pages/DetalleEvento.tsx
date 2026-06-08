@@ -53,6 +53,7 @@ export default function DetalleEvento() {
   const [isForOther, setIsForOther] = useState(false)
   const [guestNames, setGuestNames] = useState<string[]>([''])
   const [chatToast, setChatToast] = useState<string | null>(null)
+  const [showTicketModal, setShowTicketModal] = useState(false)
   const descMaxLen = 150
 
   useEffect(() => {
@@ -492,11 +493,11 @@ export default function DetalleEvento() {
               {t('evento.chat')}
             </button>
           )}
-          <Link to="/mis-entradas"
+          <button type="button" onClick={() => setShowTicketModal(true)}
             className="cyber-btn border-2 border-black px-4 py-3 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer flex items-center gap-1.5">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
             {t('evento.entradas')}
-          </Link>
+          </button>
           <button type="button" onClick={() => { setShowPayment(true); setQty(1); setIsForOther(false); setGuestNames(['']) }}
             className="cyber-btn-active border-2 border-black px-8 py-3 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">{t('evento.comprar')}</button>
         </div>
@@ -506,6 +507,69 @@ export default function DetalleEvento() {
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-4 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_#000] font-share-tech text-sm font-bold">
           {chatToast}
         </div>
+      )}
+
+      {showTicketModal && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowTicketModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[6px_6px_0px_#000] p-6 w-full max-w-md relative overflow-hidden animate-slide-up">
+              <div className="absolute inset-0 cyber-grid pointer-events-none opacity-[0.06]" />
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500 rounded-t-xl" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-lg font-orbitron font-extrabold uppercase text-gray-900">{t('evento.entradas')}</h3>
+                  <button type="button" onClick={() => setShowTicketModal(false)}
+                    className="p-1.5 border-2 border-black rounded-lg shadow-[2px_2px_0px_#000] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+
+                <div className="mb-4 p-4 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_#000]">
+                  <p className="font-orbitron font-bold text-sm text-gray-900 truncate">{event.title}</p>
+                  <p className="text-xs font-share-tech text-slate-500 mt-0.5">{event.date ? new Date(event.date).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''}</p>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center justify-between p-3 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_#000]">
+                    <span className="text-xs font-share-tech text-slate-600 uppercase">{t('evento.tipo_entrada')}</span>
+                    <span className="text-xs font-orbitron font-bold uppercase text-accent-secondary">{event.type || 'General'}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_#000]">
+                    <span className="text-xs font-share-tech text-slate-600 uppercase">{t('evento.boletas_vendidas')}</span>
+                    <span className="text-xs font-orbitron font-bold text-gray-900">{event.attendees || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_#000]">
+                    <span className="text-xs font-share-tech text-slate-600 uppercase">{t('evento.capacidad')}</span>
+                    <span className="text-xs font-orbitron font-bold text-gray-900">{event.capacity || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_#000]">
+                    <span className="text-xs font-share-tech text-slate-600 uppercase">{t('evento.disponibles')}</span>
+                    <span className={`text-xs font-orbitron font-bold ${(event.capacity - event.attendees) > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {Math.max(0, (event.capacity || 0) - (event.attendees || 0))}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0px_#000]">
+                    <span className="text-xs font-share-tech text-slate-600 uppercase">{t('evento.precio')}</span>
+                    <span className="text-xs font-orbitron font-bold text-gray-900">{event.price ? formatPrice(String(event.price)) : 'Gratis'}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setShowTicketModal(false)}
+                    className="cyber-btn flex-1 py-3 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer">
+                    {t('pago.cancelar')}
+                  </button>
+                  <button type="button" onClick={() => { setShowTicketModal(false); setShowPayment(true); setQty(1); setIsForOther(false); setGuestNames(['']) }}
+                    className="cyber-btn-active border-2 border-black flex-1 py-3 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer"
+                    disabled={(event.capacity - event.attendees) <= 0}>
+                    🎟️ {t('evento.comprar')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {showPayment && (
