@@ -15,9 +15,14 @@ export async function getProfiles(userIds: string[]) {
 }
 
 export async function updateProfile(userId: string, updates: Record<string, unknown>) {
-  const { error } = await supabase.from('profiles').upsert({ id: userId, ...updates }, { onConflict: 'id' })
-  if (error) console.error('Error al guardar perfil:', error)
-  return { error }
+  const { error: updateError } = await supabase.from('profiles').update(updates).eq('id', userId)
+  if (!updateError) return { error: null }
+  const { error: insertError } = await supabase.from('profiles').insert({ id: userId, ...updates })
+  if (!insertError) return { error: null }
+  if (insertError.message?.includes('duplicate')) {
+    return { error: new Error('No tienes permisos para actualizar tu perfil. Aplica la migración SQL faltante.') }
+  }
+  return { error: insertError }
 }
 
 export async function getEvents(userId: string) {

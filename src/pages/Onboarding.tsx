@@ -57,17 +57,24 @@ export default function Onboarding() {
     setSaving(true)
     setError('')
     try {
-      const { error: saveError } = await updateProfile(user.id, {
+      const updates = {
         categorias: selectedCategories,
         ubicacion: location,
         idioma: selectedLang,
         nombre: user.user_metadata?.full_name || '',
-      })
-      if (saveError) { setError(saveError.message); setSaving(false); return }
+      }
+      const { error: saveError } = await updateProfile(user.id, updates)
+      if (saveError) {
+        console.error('Onboarding save error:', saveError)
+        setError(`Error al guardar: ${saveError.message}`)
+        setSaving(false)
+        return
+      }
       setLang(selectedLang)
-      window.location.href = '/'
+      window.location.replace('/')
     } catch (e: any) {
-      setError(e.message)
+      console.error('Onboarding catch:', e)
+      setError(`Error inesperado: ${e.message}`)
       setSaving(false)
     }
   }
