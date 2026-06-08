@@ -149,32 +149,41 @@ export default function Sidebar() {
       </aside>
 
       {showPremiumModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl p-8 w-80 mx-4 text-center">
-            <span className="text-5xl block mb-4">⭐</span>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Función Premium</h2>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Crear eventos es exclusivo para cuentas <strong>Premium</strong>.
-              Actualiza tu plan para acceder a esta función.
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowPremiumModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowPremiumModal(false); close(); navigate('/premium') }}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-sm font-semibold text-white hover:from-amber-600 hover:to-orange-600 transition-all cursor-pointer"
-              >
-                Ver planes
-              </button>
+        <>
+          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowPremiumModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[6px_6px_0px_#000] p-6 max-w-sm w-full relative animate-slide-up overflow-hidden">
+              <div className="absolute inset-0 cyber-grid pointer-events-none opacity-[0.06]" />
+              <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500 rounded-t-xl" />
+              <div className="relative z-10 flex flex-col items-center text-center pt-2">
+                <div className="w-16 h-16 rounded-full border-2 border-black bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-4 shadow-[3px_3px_0px_#000]">
+                  <span className="text-3xl">⭐</span>
+                </div>
+                <h3 className="font-orbitron font-extrabold text-lg text-gray-900 mb-1">Función Premium</h3>
+                <p className="font-share-tech text-sm text-slate-500 mb-6 leading-relaxed">
+                  Crear eventos es exclusivo para cuentas <strong className="text-accent-secondary font-bold">Premium</strong>.
+                  Actualiza tu plan para acceder a esta función.
+                </p>
+                <div className="flex gap-3 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setShowPremiumModal(false)}
+                    className="cyber-btn flex-1 py-3 rounded-xl text-sm font-orbitron font-bold uppercase cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowPremiumModal(false); close(); navigate('/premium') }}
+                    className="cyber-btn-active border-2 border-black flex-1 py-3 rounded-xl text-sm font-orbitron font-bold uppercase shadow-[2px_2px_0px_#000] cursor-pointer"
+                  >
+                    Ver planes
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {showConfirm && (
