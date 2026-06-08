@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
@@ -54,6 +55,7 @@ function SettingsCard({ children, title, icon }: { children: React.ReactNode; ti
 export default function Configuracion() {
   const { t } = useLanguage()
   const { isPremium, user } = useAuth()
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const handleLogout = async () => {
     try {
@@ -251,7 +253,7 @@ export default function Configuracion() {
         </SettingsCard>
 
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutModal(true)}
           className="cyber-btn-danger w-full py-3 px-6 rounded-xl text-sm font-bold cursor-pointer flex items-center justify-center gap-3"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,6 +261,36 @@ export default function Configuracion() {
           </svg>
           {t('sidebar.cerrar_sesion')}
         </button>
+
+        {showLogoutModal && (
+          <>
+            <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowLogoutModal(false)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-[#f8f9fa] rounded-xl border-2 border-black shadow-[5px_5px_0px_#000] p-6 max-w-sm w-full relative animate-slide-up">
+                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-500 rounded-t-xl" />
+                <div className="flex flex-col items-center text-center pt-2">
+                  <div className="w-14 h-14 rounded-full border-2 border-black bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center mb-4 shadow-[2px_2px_0px_#000]">
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  </div>
+                  <h3 className="font-orbitron font-extrabold text-lg text-gray-900 mb-1">{t('sidebar.cerrar_sesion')}</h3>
+                  <p className="font-share-tech text-sm text-slate-500 mb-6">¿Estás seguro de que quieres cerrar sesión?</p>
+                  <div className="flex gap-3 w-full">
+                    <button type="button" onClick={() => setShowLogoutModal(false)}
+                      className="cyber-btn flex-1 py-2.5 rounded-xl text-sm font-bold cursor-pointer">
+                      Cancelar
+                    </button>
+                    <button type="button" onClick={handleLogout}
+                      className="cyber-btn-danger flex-1 py-2.5 rounded-xl text-sm font-bold cursor-pointer">
+                      Cerrar sesión
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
