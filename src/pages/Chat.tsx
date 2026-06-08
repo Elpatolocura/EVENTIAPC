@@ -55,7 +55,8 @@ export default function Chat() {
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [mutedChats, setMutedChats] = useState<Set<string>>(new Set())
   const aiStorageKey = `yulianis_chat_${user?.id || 'anon'}`
-  const [aiMessages, setAiMessages] = useState<any[]>(() => { try { const stored = localStorage.getItem(aiStorageKey); return stored ? JSON.parse(stored) : [{ id: 1, role: 'ai', content: '¡Hola! Soy YULIANIS, tu asistente inteligente de Eventia. Puedo consultar eventos, ayudarte a usar la plataforma o resolver tus dudas. ¿En qué te ayudo?' }] } catch { return [{ id: 1, role: 'ai', content: '¡Hola! Soy YULIANIS, tu asistente inteligente de Eventia. Puedo consultar eventos, ayudarte a usar la plataforma o resolver tus dudas. ¿En qué te ayudo?' }] } })
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'desconocido'
+  const [aiMessages, setAiMessages] = useState<any[]>(() => { try { const stored = localStorage.getItem(aiStorageKey); return stored ? JSON.parse(stored) : [{ id: 1, role: 'ai', content: `¡Ey ${userName}! 😏 Soy YULIANIS, tu asistente favorita de Eventia. Estoy aquí para ayudarte con lo que necesites... o para hacerte la vida un poquito más interesante. Cuéntame, ¿qué se te ofrece, hermos@?` }] } catch { return [{ id: 1, role: 'ai', content: `¡Ey ${userName}! 😏 Soy YULIANIS, tu asistente favorita de Eventia. Estoy aquí para ayudarte con lo que necesites... o para hacerte la vida un poquito más interesante. Cuéntame, ¿qué se te ofrece, hermos@?` }] } })
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiEventsContext, setAiEventsContext] = useState('')
@@ -407,7 +408,7 @@ export default function Chat() {
     setAiLoading(true)
     try {
       const history = [...aiMessages.slice(-10), userMsg]
-      const systemPrompt = `Eres YULIANIS, la asistente virtual de Eventia (plataforma de eventos). Tu personalidad es amable, entusiasta y servicial.
+      const systemPrompt = `Eres YULIANIS, la asistente virtual de Eventia. Pero no una asistente aburrida — eres picara, coqueta, carismática y con mucha personalidad. Te gusta coquetear un poquito, hacer reír y crear ambiente. Siempre respondes con confianza y un toque de humor picante, como esa amiga que te dice las cosas como son pero con una sonrisa traviesa.
 
 INFORMACIÓN DE LA PLATAFORMA:
 - Los usuarios pueden: crear eventos, comprar/vender entradas, chatear en eventos, seguir usuarios, gestionar perfil, dejar reseñas.
@@ -425,8 +426,8 @@ Instrucciones importantes:
   Ejemplo: [BUY:abc-123:2]
 - Solo usa [BUY:...] si el usuario pidió explícitamente comprar.
 - NUNCA uses formato de link [texto](/ruta) — solo usa [CARD:...] para eventos y [BUY:...] para compras.
-- Responde siempre en español, de forma clara y concisa.
-- Sé cálida y usa emojis ocasionalmente.`
+- Responde siempre en español, con un tono cálido, picaro y divertido.
+- Usa emojis con frecuencia y si puedes, un apodo cariñoso de vez en cuando (ej: "corazón", "rey/reina", "bebé", "mi vida").`
 
       const result = await chatWithAI(systemPrompt, history.map(m => ({ role: m.role, content: m.content })))
       const buyMatch = result?.match(/\[BUY:([^\]]+):(\d+)\]/)
