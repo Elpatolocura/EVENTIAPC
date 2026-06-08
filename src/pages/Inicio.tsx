@@ -30,6 +30,7 @@ export default function Inicio() {
       setProfile(p)
       if (p?.ubicacion && !userCity) setUserCity(p.ubicacion)
       if (p?.categorias?.length) setSelectedCategories(new Set(p.categorias))
+      else if (user.user_metadata?.categorias?.length) setSelectedCategories(new Set(user.user_metadata.categorias))
     })
   }, [user])
 
